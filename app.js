@@ -63,6 +63,7 @@ const whatsAppReportType = document.querySelector("#whatsAppReportType");
 const whatsAppEnabled = document.querySelector("#whatsAppEnabled");
 const whatsAppStatus = document.querySelector("#whatsAppStatus");
 const sendTestWhatsAppButton = document.querySelector("#sendTestWhatsAppButton");
+const openWhatsAppShareButton = document.querySelector("#openWhatsAppShareButton");
 
 let reportSettings = createDefaultReportSettings();
 
@@ -289,6 +290,25 @@ function bindEvents() {
       console.error(error);
       setWhatsAppStatus("Test mesaji gonderilemedi.", true);
     }
+  });
+
+  openWhatsAppShareButton.addEventListener("click", () => {
+    const phoneNumber = normalizePhoneNumber(whatsAppPhone.value);
+    if (!phoneNumber) {
+      setWhatsAppStatus("Paylasim icin once telefon numarasi gir.", true);
+      return;
+    }
+
+    const currentDay = getCurrentDay();
+    const reportText = buildWhatsAppShareMessage({
+      reportDate: getSelectedDate(),
+      transactions: currentDay.transactions,
+      reportType: whatsAppReportType.value,
+    });
+
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(reportText)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setWhatsAppStatus("WhatsApp mesaji yeni sekmede hazirlandi.");
   });
 }
 
@@ -685,6 +705,63 @@ function createDefaultReportSettings() {
     is_enabled: false,
     report_type: "daily_summary",
   };
+}
+
+function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
+  const sales = transactions.filter((item) => item.type === "sale");
+  const expenses = transactions.filter((item) => item.type === "expense");
+
+  const totalRevenue = sales.reduce((sum, item) => sum + item.amount, 0);
+  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const cashSales = sales
+    .filter((item) => item.paymentType === "cash")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const bankSales = sales
+    .filter((item) => item.paymentType === "pos")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const cashExpenses = expenses
+    .filter((item) => item.paymentType === "cash")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const bankExpenses = expenses
+    .filter((item) => item.paymentType === "bank")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  const lines = [
+    `Gun Sonu Raporu - ${reportDate}`,
+    "",
+    `Total Ciro: ${formatCurrency(totalRevenue)}`,
+    `Nakit Kasa: ${formatCurrency(cashSales - cashExpenses)}`,
+    `Banka Kasasi: ${formatCurrency(bankSales - bankExpenses)}`,
+    `Toplam Gider: ${formatCurrency(totalExpense)}`,
+    `Net Kasa: ${formatCurrency(totalRevenue - totalExpense)}`,
+  ];
+
+  if (reportType === "daily_with_top_products") {
+    const topProducts = Object.values(
+      sales.reduce((accumulator, item) => {
+        if (!accumulator[item.title]) {
+          accumulator[item.title] = { title: item.title, count: 0 };
+        }
+
+        accumulator[item.title].count += 1;
+        return accumulator;
+      }, {})
+    )
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    lines.push("", "En Cok Satanlar:");
+
+    if (topProducts.length === 0) {
+      lines.push("- Satis yok");
+    } else {
+      topProducts.forEach((item) => {
+        lines.push(`- ${item.title}: ${item.count} adet`);
+      });
+    }
+  }
+
+  return lines.join("\n");
 }
 
 async function loadReportSettings() {
