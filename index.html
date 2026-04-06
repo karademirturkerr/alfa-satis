@@ -16,9 +16,9 @@
             <p class="eyebrow">Lokal Kasa Paneli</p>
             <h1>Gunluk satis, tahsilat ve gider takibi</h1>
             <div class="hero-chips">
-              <span class="hero-chip">Hizli Satis</span>
-              <span class="hero-chip">Anlik Kasa</span>
-              <span class="hero-chip">Gun Sonu Ozet</span>
+              <button class="hero-chip" type="button" data-target="productSection">Hizli Satis</button>
+              <button class="hero-chip" type="button" data-target="summarySection">Anlik Kasa</button>
+              <button class="hero-chip" type="button" data-target="transactionsSection">Gun Sonu Ozet</button>
             </div>
           </div>
         </div>
@@ -34,7 +34,7 @@
     </header>
 
     <main class="dashboard">
-      <section class="panel summary-panel">
+      <section id="summarySection" class="panel summary-panel report-section">
         <div class="panel-title-row">
           <h2>Gun Sonu Ozeti</h2>
         </div>
@@ -62,7 +62,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="productSection" class="panel report-section">
         <div class="panel-title-row">
           <h2>Urunler</h2>
           <button id="openProductFormButton" class="primary-button" type="button">Yeni Urun</button>
@@ -112,7 +112,7 @@
         </form>
       </section>
 
-      <section class="panel wide">
+      <section id="transactionsSection" class="panel wide report-section">
         <div class="panel-title-row">
           <h2>Gunluk Kasa Hareketleri</h2>
           <div class="export-actions">

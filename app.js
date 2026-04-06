@@ -55,6 +55,7 @@ const exportRangeForm = document.querySelector("#exportRangeForm");
 const rangeStartDate = document.querySelector("#rangeStartDate");
 const rangeEndDate = document.querySelector("#rangeEndDate");
 const closeRangeDialogButton = document.querySelector("#closeRangeDialogButton");
+const heroChips = document.querySelectorAll(".hero-chip[data-target]");
 
 let pendingProductId = null;
 
@@ -78,6 +79,12 @@ async function initialize() {
 
 function bindEvents() {
   selectedDateInput.addEventListener("change", render);
+
+  heroChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      focusSection(chip.dataset.target);
+    });
+  });
 
   openProductFormButton.addEventListener("click", () => {
     productForm.classList.toggle("hidden");
@@ -575,6 +582,28 @@ function getPaymentLabel(paymentType) {
   }
 
   return "-";
+}
+
+function focusSection(sectionId) {
+  const targetSection = document.getElementById(sectionId);
+  if (!targetSection) {
+    return;
+  }
+
+  document.querySelectorAll(".report-section").forEach((section) => {
+    section.classList.remove("is-highlighted");
+  });
+
+  targetSection.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+
+  targetSection.classList.add("is-highlighted");
+
+  window.setTimeout(() => {
+    targetSection.classList.remove("is-highlighted");
+  }, 1300);
 }
 
 function getSelectedDate() {
