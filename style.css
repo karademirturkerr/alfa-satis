@@ -425,6 +425,25 @@ select {
   gap: 14px;
 }
 
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
 .hidden {
   display: none;
 }

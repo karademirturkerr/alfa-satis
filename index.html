@@ -112,6 +112,38 @@
         </form>
       </section>
 
+      <section class="panel">
+        <div class="panel-title-row">
+          <h2>WhatsApp Raporu</h2>
+        </div>
+        <form id="whatsAppSettingsForm" class="stack-form">
+          <label>
+            Alici Telefonu
+            <input id="whatsAppPhone" type="tel" placeholder="905xxxxxxxxx" required>
+          </label>
+          <label>
+            Gonderim Saati
+            <input id="whatsAppTime" type="time" required>
+          </label>
+          <label>
+            Rapor Turu
+            <select id="whatsAppReportType">
+              <option value="daily_summary">Gun Sonu Ozet</option>
+              <option value="daily_with_top_products">Gun Sonu + Cok Satanlar</option>
+            </select>
+          </label>
+          <label class="toggle-row">
+            <input id="whatsAppEnabled" type="checkbox">
+            <span>Otomatik gonderim aktif</span>
+          </label>
+          <div class="settings-actions">
+            <button class="primary-button" type="submit">Ayarlari Kaydet</button>
+            <button id="sendTestWhatsAppButton" class="secondary-button" type="button">Test Mesaji Gonder</button>
+          </div>
+          <p id="whatsAppStatus" class="helper-text">Rapor ayarlari henuz kaydedilmedi.</p>
+        </form>
+      </section>
+
       <section id="transactionsSection" class="panel wide report-section">
         <div class="panel-title-row">
           <h2>Gunluk Kasa Hareketleri</h2>

@@ -56,6 +56,15 @@ const rangeStartDate = document.querySelector("#rangeStartDate");
 const rangeEndDate = document.querySelector("#rangeEndDate");
 const closeRangeDialogButton = document.querySelector("#closeRangeDialogButton");
 const heroChips = document.querySelectorAll(".hero-chip[data-target]");
+const whatsAppSettingsForm = document.querySelector("#whatsAppSettingsForm");
+const whatsAppPhone = document.querySelector("#whatsAppPhone");
+const whatsAppTime = document.querySelector("#whatsAppTime");
+const whatsAppReportType = document.querySelector("#whatsAppReportType");
+const whatsAppEnabled = document.querySelector("#whatsAppEnabled");
+const whatsAppStatus = document.querySelector("#whatsAppStatus");
+const sendTestWhatsAppButton = document.querySelector("#sendTestWhatsAppButton");
+
+let reportSettings = createDefaultReportSettings();
 
 let pendingProductId = null;
 
@@ -68,12 +77,15 @@ async function initialize() {
 
   try {
     state = await loadState();
+    reportSettings = await loadReportSettings();
   } catch (error) {
     console.error("Veriler yuklenemedi, lokal yedek aciliyor.", error);
     state = createDefaultState();
+    reportSettings = createDefaultReportSettings();
   }
 
   setUiDisabled(false);
+  renderReportSettings();
   render();
 }
 
@@ -225,6 +237,59 @@ function bindEvents() {
   closeRangeDialogButton.addEventListener("click", () => {
     exportRangeDialog.close();
   });
+
+  whatsAppSettingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nextSettings = {
+      phone_number: normalizePhoneNumber(whatsAppPhone.value),
+      send_time: whatsAppTime.value,
+      is_enabled: whatsAppEnabled.checked,
+      report_type: whatsAppReportType.value,
+    };
+
+    if (!nextSettings.phone_number || !nextSettings.send_time) {
+      setWhatsAppStatus("Telefon ve saat zorunlu.", true);
+      return;
+    }
+
+    try {
+      setWhatsAppStatus("Ayarlar kaydediliyor...");
+      reportSettings = await saveReportSettings(nextSettings);
+      renderReportSettings();
+      setWhatsAppStatus("WhatsApp rapor ayarlari kaydedildi.");
+    } catch (error) {
+      console.error(error);
+      setWhatsAppStatus("Ayarlar kaydedilemedi.", true);
+    }
+  });
+
+  sendTestWhatsAppButton.addEventListener("click", async () => {
+    const phoneNumber = normalizePhoneNumber(whatsAppPhone.value);
+    if (!phoneNumber) {
+      setWhatsAppStatus("Test icin once telefon numarasi gir.", true);
+      return;
+    }
+
+    if (!isRemoteStorageEnabled()) {
+      setWhatsAppStatus("Test mesaji icin Supabase modu gerekli.", true);
+      return;
+    }
+
+    try {
+      setWhatsAppStatus("Test mesaji gonderiliyor...");
+      await invokeWhatsAppFunction({
+        mode: "test",
+        phone_number: phoneNumber,
+        report_type: whatsAppReportType.value,
+        report_date: getSelectedDate(),
+      });
+      setWhatsAppStatus("Test mesaji gonderim istegi basariyla iletildi.");
+    } catch (error) {
+      console.error(error);
+      setWhatsAppStatus("Test mesaji gonderilemedi.", true);
+    }
+  });
 }
 
 function render() {
@@ -232,6 +297,13 @@ function render() {
   renderTransactions();
   renderSummary();
   renderBreakdown();
+}
+
+function renderReportSettings() {
+  whatsAppPhone.value = reportSettings.phone_number || "";
+  whatsAppTime.value = reportSettings.send_time || "22:00";
+  whatsAppReportType.value = reportSettings.report_type || "daily_summary";
+  whatsAppEnabled.checked = Boolean(reportSettings.is_enabled);
 }
 
 function renderProducts() {
@@ -604,6 +676,140 @@ function focusSection(sectionId) {
   window.setTimeout(() => {
     targetSection.classList.remove("is-highlighted");
   }, 1300);
+}
+
+function createDefaultReportSettings() {
+  return {
+    phone_number: "",
+    send_time: "22:00",
+    is_enabled: false,
+    report_type: "daily_summary",
+  };
+}
+
+async function loadReportSettings() {
+  if (!isRemoteStorageEnabled()) {
+    return createDefaultReportSettings();
+  }
+
+  const response = await fetch(
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}&select=phone_number,send_time,is_enabled,report_type`,
+    {
+      method: "GET",
+      headers: createSupabaseHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Rapor ayarlari alinamadi: ${response.status}`);
+  }
+
+  const rows = await response.json();
+  return rows[0]
+    ? {
+        phone_number: rows[0].phone_number || "",
+        send_time: rows[0].send_time || "22:00",
+        is_enabled: Boolean(rows[0].is_enabled),
+        report_type: rows[0].report_type || "daily_summary",
+      }
+    : createDefaultReportSettings();
+}
+
+async function saveReportSettings(nextSettings) {
+  if (!isRemoteStorageEnabled()) {
+    reportSettings = nextSettings;
+    return nextSettings;
+  }
+
+  const payload = {
+    app_id: appConfig.appId,
+    phone_number: nextSettings.phone_number,
+    send_time: nextSettings.send_time,
+    is_enabled: nextSettings.is_enabled,
+    report_type: nextSettings.report_type,
+  };
+
+  const response = await fetch(
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...createSupabaseHeaders(),
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (response.ok) {
+    const rows = await response.json();
+    if (rows[0]) {
+      return mapReportSettingsRow(rows[0]);
+    }
+  }
+
+  if (!response.ok && response.status !== 404 && response.status !== 406) {
+    throw new Error(`Rapor ayarlari guncellenemedi: ${response.status}`);
+  }
+
+  const createResponse = await fetch(`${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}`, {
+    method: "POST",
+    headers: {
+      ...createSupabaseHeaders(),
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify([payload]),
+  });
+
+  if (!createResponse.ok) {
+    throw new Error(`Rapor ayarlari olusturulamadi: ${createResponse.status}`);
+  }
+
+  const createdRows = await createResponse.json();
+  return createdRows[0] ? mapReportSettingsRow(createdRows[0]) : nextSettings;
+}
+
+function mapReportSettingsRow(row) {
+  return {
+    phone_number: row.phone_number || "",
+    send_time: row.send_time || "22:00",
+    is_enabled: Boolean(row.is_enabled),
+    report_type: row.report_type || "daily_summary",
+  };
+}
+
+async function invokeWhatsAppFunction(payload) {
+  const response = await fetch(
+    `${appConfig.supabaseUrl}/functions/v1/${appConfig.whatsAppFunctionName}`,
+    {
+      method: "POST",
+      headers: {
+        ...createSupabaseHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        app_id: appConfig.appId,
+        ...payload,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`WhatsApp fonksiyonu basarisiz: ${response.status}`);
+  }
+
+  return response.json().catch(() => ({}));
+}
+
+function normalizePhoneNumber(value) {
+  return value.replaceAll(/\s+/g, "").replaceAll("+", "");
+}
+
+function setWhatsAppStatus(message, isError = false) {
+  whatsAppStatus.textContent = message;
+  whatsAppStatus.style.color = isError ? "var(--danger)" : "";
 }
 
 function getSelectedDate() {
