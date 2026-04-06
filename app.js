@@ -38,6 +38,16 @@ const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
 const openProductFormButton = document.querySelector("#openProductFormButton");
 const resetDayButton = document.querySelector("#resetDayButton");
+const editDialog = document.querySelector("#editDialog");
+const editTransactionForm = document.querySelector("#editTransactionForm");
+const editTransactionId = document.querySelector("#editTransactionId");
+const editProductField = document.querySelector("#editProductField");
+const editProductSelect = document.querySelector("#editProductSelect");
+const editTitleInput = document.querySelector("#editTitleInput");
+const editAmountInput = document.querySelector("#editAmountInput");
+const editPaymentField = document.querySelector("#editPaymentField");
+const editPaymentType = document.querySelector("#editPaymentType");
+const closeEditDialogButton = document.querySelector("#closeEditDialogButton");
 
 let pendingProductId = null;
 
@@ -142,6 +152,49 @@ function bindEvents() {
     void persist();
     render();
   });
+
+  editTransactionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const currentDay = getCurrentDay();
+    const transaction = currentDay.transactions.find((item) => item.id === editTransactionId.value);
+    if (!transaction) {
+      return;
+    }
+
+    if (transaction.type === "sale") {
+      transaction.productId = editProductSelect.value || transaction.productId;
+      transaction.title = editTitleInput.value.trim();
+      transaction.amount = Number(editAmountInput.value);
+      transaction.paymentType = editPaymentType.value;
+    } else {
+      transaction.title = editTitleInput.value.trim();
+      transaction.amount = Number(editAmountInput.value);
+      transaction.paymentType = "-";
+    }
+
+    if (!transaction.title || Number.isNaN(transaction.amount) || transaction.amount <= 0) {
+      return;
+    }
+
+    void persist();
+    editDialog.close();
+    render();
+  });
+
+  editProductSelect.addEventListener("change", () => {
+    const selectedProduct = state.products.find((item) => item.id === editProductSelect.value);
+    if (!selectedProduct) {
+      return;
+    }
+
+    editTitleInput.value = selectedProduct.name;
+    editAmountInput.value = String(selectedProduct.price);
+  });
+
+  closeEditDialogButton.addEventListener("click", () => {
+    editDialog.close();
+  });
 }
 
 function render() {
@@ -190,7 +243,7 @@ function renderTransactions() {
   if (transactions.length === 0) {
     const emptyRow = document.createElement("tr");
     emptyRow.innerHTML = `
-      <td colspan="5">Bu gun icin henuz kayit yok.</td>
+      <td colspan="6">Bu gun icin henuz kayit yok.</td>
     `;
     transactionTableBody.append(emptyRow);
     return;
@@ -212,7 +265,21 @@ function renderTransactions() {
       <td>${escapeHtml(transaction.title)}</td>
       <td><span class="badge payment">${paymentLabel}</span></td>
       <td>${formatCurrency(transaction.amount)}</td>
+      <td>
+        <div class="table-actions">
+          <button class="table-action-button edit" type="button" data-action="edit" data-id="${transaction.id}">Duzenle</button>
+          <button class="table-action-button delete" type="button" data-action="delete" data-id="${transaction.id}">Sil</button>
+        </div>
+      </td>
     `;
+
+    row.querySelector('[data-action="edit"]').addEventListener("click", () => {
+      openEditDialog(transaction.id);
+    });
+
+    row.querySelector('[data-action="delete"]').addEventListener("click", () => {
+      deleteTransaction(transaction.id);
+    });
 
     transactionTableBody.append(row);
   });
@@ -300,6 +367,54 @@ function addSale(productId, paymentType) {
     createdAt: new Date().toISOString(),
   });
 
+  void persist();
+  render();
+}
+
+function openEditDialog(transactionId) {
+  const transaction = getCurrentDay().transactions.find((item) => item.id === transactionId);
+  if (!transaction) {
+    return;
+  }
+
+  editTransactionId.value = transaction.id;
+  editTitleInput.value = transaction.title;
+  editAmountInput.value = String(transaction.amount);
+
+  if (transaction.type === "sale") {
+    editProductField.classList.remove("hidden");
+    editPaymentField.classList.remove("hidden");
+    editPaymentType.value = transaction.paymentType;
+    renderEditProductOptions(transaction.productId);
+  } else {
+    editProductField.classList.add("hidden");
+    editPaymentField.classList.add("hidden");
+    editProductSelect.innerHTML = "";
+  }
+
+  editDialog.showModal();
+}
+
+function renderEditProductOptions(selectedProductId) {
+  editProductSelect.innerHTML = "";
+
+  state.products.forEach((product) => {
+    const option = document.createElement("option");
+    option.value = product.id;
+    option.textContent = `${product.name} - ${formatCurrency(product.price)}`;
+    option.selected = product.id === selectedProductId;
+    editProductSelect.append(option);
+  });
+}
+
+function deleteTransaction(transactionId) {
+  const shouldDelete = window.confirm("Silmek istedigine emin misin?");
+  if (!shouldDelete) {
+    return;
+  }
+
+  const currentDay = getCurrentDay();
+  currentDay.transactions = currentDay.transactions.filter((item) => item.id !== transactionId);
   void persist();
   render();
 }

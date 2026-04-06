@@ -119,6 +119,7 @@
                 <th>Aciklama</th>
                 <th>Odeme</th>
                 <th>Tutar</th>
+                <th>Islem</th>
               </tr>
             </thead>
             <tbody id="transactionTableBody"></tbody>
@@ -144,6 +145,36 @@
         <button id="posSelectButton" class="secondary-button" value="pos" type="submit">POS</button>
       </div>
       <button class="ghost-button full-width" value="cancel" type="submit">Vazgec</button>
+    </form>
+  </dialog>
+
+  <dialog id="editDialog" class="payment-dialog">
+    <form id="editTransactionForm" class="dialog-card">
+      <h3>Hareketi Duzenle</h3>
+      <input id="editTransactionId" type="hidden">
+      <label id="editProductField">
+        Urun
+        <select id="editProductSelect"></select>
+      </label>
+      <label>
+        Aciklama
+        <input id="editTitleInput" type="text" required>
+      </label>
+      <label>
+        Tutar (TL)
+        <input id="editAmountInput" type="number" min="0" step="0.01" required>
+      </label>
+      <label id="editPaymentField">
+        Odeme Turu
+        <select id="editPaymentType">
+          <option value="cash">Nakit</option>
+          <option value="pos">POS</option>
+        </select>
+      </label>
+      <div class="dialog-actions">
+        <button class="primary-button" type="submit">Kaydet</button>
+        <button id="closeEditDialogButton" class="ghost-button" type="button">Iptal</button>
+      </div>
     </form>
   </dialog>
 

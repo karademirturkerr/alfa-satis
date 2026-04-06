@@ -189,11 +189,13 @@ label {
 }
 
 input,
+select,
 button {
   font: inherit;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 12px 14px;
   border-radius: 14px;
@@ -357,6 +359,29 @@ input {
 
 .full-width {
   width: 100%;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.table-action-button {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.table-action-button.edit {
+  background: rgba(17, 17, 17, 0.1);
+  color: #21130d;
+}
+
+.table-action-button.delete {
+  background: rgba(143, 14, 14, 0.12);
+  color: var(--danger);
 }
 
 .stack-form {
