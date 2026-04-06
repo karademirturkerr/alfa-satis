@@ -1268,10 +1268,9 @@ async function persistRemoteState() {
 }
 
 function createSupabaseHeaders() {
-  const bearerToken = currentSession?.access_token || appConfig.supabaseAnonKey;
   return {
     apikey: appConfig.supabaseAnonKey,
-    Authorization: `Bearer ${bearerToken}`,
+    Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
   };
 }
 
