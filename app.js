@@ -2,6 +2,7 @@ const STORAGE_KEY = "restaurant-cash-register-v1";
 const appConfig = window.APP_CONFIG || {};
 const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
 const DEFAULT_WHATSAPP_PHONE_NORMALIZED = "905338245595";
+const INITIAL_GRAND_TOTAL_CASH = 2540;
 
 const defaultProducts = [
   { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300 },
@@ -36,10 +37,14 @@ const totalBank = document.querySelector("#totalBank");
 const totalCash = document.querySelector("#totalCash");
 const totalExpense = document.querySelector("#totalExpense");
 const netAmount = document.querySelector("#netAmount");
+const grandTotalCash = document.querySelector("#grandTotalCash");
 const recordCount = document.querySelector("#recordCount");
+const dayStatusBadge = document.querySelector("#dayStatusBadge");
+const summaryStatusText = document.querySelector("#summaryStatusText");
 const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
 const openProductFormButton = document.querySelector("#openProductFormButton");
+const closeDayButton = document.querySelector("#closeDayButton");
 const exportExcelButton = document.querySelector("#exportExcelButton");
 const exportRangeButton = document.querySelector("#exportRangeButton");
 const editDialog = document.querySelector("#editDialog");
@@ -169,6 +174,27 @@ function bindEvents() {
 
   exportExcelButton.addEventListener("click", () => {
     exportCurrentDayReport();
+  });
+
+  closeDayButton.addEventListener("click", async () => {
+    const currentDay = getCurrentDay();
+
+    if (currentDay.isClosed) {
+      window.alert("Bu gun zaten kapatildi.");
+      return;
+    }
+
+    const shouldClose = window.confirm("Gunu kapatmak istedigine emin misin?");
+    if (!shouldClose) {
+      return;
+    }
+
+    state.meta.grandTotalCash += calculateNetForTransactions(currentDay.transactions);
+    currentDay.isClosed = true;
+
+    await persist();
+    render();
+    setWhatsAppStatus("Gun kapatildi, toplam kasa guncellendi.");
   });
 
   exportRangeButton.addEventListener("click", () => {
@@ -319,6 +345,7 @@ function render() {
   renderTransactions();
   renderSummary();
   renderBreakdown();
+  renderGrandTotalCash();
 }
 
 function renderReportSettings() {
@@ -429,6 +456,17 @@ function renderSummary() {
   totalBank.textContent = formatCurrency(bank - bankExpenses);
   totalExpense.textContent = formatCurrency(expense);
   netAmount.textContent = formatCurrency(revenue - expense);
+  closeDayButton.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gunu Kapat";
+  closeDayButton.disabled = Boolean(currentDay.isClosed);
+  dayStatusBadge.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gun Acik";
+  dayStatusBadge.classList.toggle("closed", Boolean(currentDay.isClosed));
+  summaryStatusText.textContent = currentDay.isClosed
+    ? "Bu gun kapatildi ve toplam kasaya eklendi."
+    : "Bu gun henuz kapatilmadi.";
+}
+
+function renderGrandTotalCash() {
+  grandTotalCash.textContent = formatCurrency(state.meta.grandTotalCash);
 }
 
 function renderBreakdown() {
@@ -625,6 +663,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
     ["Nakit Kasa", toExcelNumber(cash - cashExpenses)],
     ["Gider", toExcelNumber(expenseTotal)],
     ["Net Kasa", toExcelNumber(net)],
+    ["Toplam Kasa", toExcelNumber(state.meta.grandTotalCash)],
     [],
     ["Satilan Urunler"],
     ["Urun", "Adet", "Toplam"],
@@ -736,6 +775,7 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
     `Banka Kasasi: ${formatCurrency(bankSales - bankExpenses)}`,
     `Toplam Gider: ${formatCurrency(totalExpense)}`,
     `Net Kasa: ${formatCurrency(totalRevenue - totalExpense)}`,
+    `Toplam Kasa: ${formatCurrency(state.meta.grandTotalCash)}`,
   ];
 
   if (reportType === "daily_with_top_products") {
@@ -901,7 +941,7 @@ function getCurrentDay() {
 
 function ensureDay(dayKey) {
   if (!state.days[dayKey]) {
-    state.days[dayKey] = { transactions: [] };
+    state.days[dayKey] = { transactions: [], isClosed: false };
   }
 
   return state.days[dayKey];
@@ -1033,6 +1073,9 @@ function createDefaultState() {
   return {
     products: defaultProducts.map((product) => ({ ...product })),
     days: {},
+    meta: {
+      grandTotalCash: INITIAL_GRAND_TOTAL_CASH,
+    },
   };
 }
 
@@ -1042,8 +1085,26 @@ function normalizeState(input) {
       Array.isArray(input?.products) && input.products.length > 0
         ? input.products
         : defaultProducts.map((product) => ({ ...product })),
-    days: input?.days || {},
+    days: normalizeDays(input?.days || {}),
+    meta: {
+      grandTotalCash:
+        typeof input?.meta?.grandTotalCash === "number"
+          ? input.meta.grandTotalCash
+          : INITIAL_GRAND_TOTAL_CASH,
+    },
   };
+}
+
+function normalizeDays(days) {
+  return Object.fromEntries(
+    Object.entries(days).map(([dayKey, dayValue]) => [
+      dayKey,
+      {
+        transactions: Array.isArray(dayValue?.transactions) ? dayValue.transactions : [],
+        isClosed: Boolean(dayValue?.isClosed),
+      },
+    ])
+  );
 }
 
 function setUiDisabled(isDisabled) {
@@ -1074,6 +1135,16 @@ function formatTime(isoDate) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(isoDate));
+}
+
+function calculateNetForTransactions(transactions) {
+  const salesTotal = transactions
+    .filter((item) => item.type === "sale")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const expenseTotal = transactions
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + item.amount, 0);
+  return salesTotal - expenseTotal;
 }
 
 function escapeHtml(text) {

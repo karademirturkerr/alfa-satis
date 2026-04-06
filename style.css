@@ -308,6 +308,30 @@ h2 {
   color: var(--hero-muted);
 }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 34px;
+  margin-top: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 248, 241, 0.14);
+  border: 1px solid rgba(255, 243, 234, 0.2);
+  color: var(--hero-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-badge.closed {
+  background: rgba(255, 190, 85, 0.18);
+  border-color: rgba(255, 209, 139, 0.26);
+  color: #fff7ef;
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -465,6 +489,13 @@ select:focus {
   letter-spacing: -0.04em;
 }
 
+.summary-status-text {
+  margin-top: 12px;
+  margin-bottom: 0;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+}
+
 .metric-card.expense strong {
   color: var(--danger);
 }
@@ -476,6 +507,14 @@ select:focus {
   background:
     linear-gradient(135deg, rgba(255, 211, 127, 0.28), rgba(255, 255, 255, 0.8)),
     rgba(255, 248, 242, 0.92);
+}
+
+.total-cash-box {
+  margin-top: 0;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .product-list,
