@@ -453,6 +453,7 @@ async function hydrateAuthenticatedApp(session) {
     currentRole = "guest";
     setAuthenticatedView(false);
     setLoginStatus("Oturum yuklenemedi. Tekrar giris yap.", true);
+    throw error;
   } finally {
     setUiDisabled(false);
   }
