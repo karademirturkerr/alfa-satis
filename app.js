@@ -1,5 +1,7 @@
 const STORAGE_KEY = "restaurant-cash-register-v1";
 const appConfig = window.APP_CONFIG || {};
+const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
+const DEFAULT_WHATSAPP_PHONE_NORMALIZED = "905338245595";
 
 const defaultProducts = [
   { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300 },
@@ -243,7 +245,7 @@ function bindEvents() {
     event.preventDefault();
 
     const nextSettings = {
-      phone_number: normalizePhoneNumber(whatsAppPhone.value),
+      phone_number: DEFAULT_WHATSAPP_PHONE_NORMALIZED,
       send_time: whatsAppTime.value,
       is_enabled: whatsAppEnabled.checked,
       report_type: whatsAppReportType.value,
@@ -266,7 +268,7 @@ function bindEvents() {
   });
 
   sendTestWhatsAppButton.addEventListener("click", async () => {
-    const phoneNumber = normalizePhoneNumber(whatsAppPhone.value);
+    const phoneNumber = DEFAULT_WHATSAPP_PHONE_NORMALIZED;
     if (!phoneNumber) {
       setWhatsAppStatus("Test icin once telefon numarasi gir.", true);
       return;
@@ -293,7 +295,7 @@ function bindEvents() {
   });
 
   openWhatsAppShareButton.addEventListener("click", () => {
-    const phoneNumber = normalizePhoneNumber(whatsAppPhone.value);
+    const phoneNumber = DEFAULT_WHATSAPP_PHONE_NORMALIZED;
     if (!phoneNumber) {
       setWhatsAppStatus("Paylasim icin once telefon numarasi gir.", true);
       return;
@@ -320,7 +322,7 @@ function render() {
 }
 
 function renderReportSettings() {
-  whatsAppPhone.value = reportSettings.phone_number || "";
+  whatsAppPhone.value = DEFAULT_WHATSAPP_PHONE;
   whatsAppTime.value = reportSettings.send_time || "22:00";
   whatsAppReportType.value = reportSettings.report_type || "daily_summary";
   whatsAppEnabled.checked = Boolean(reportSettings.is_enabled);
@@ -700,7 +702,7 @@ function focusSection(sectionId) {
 
 function createDefaultReportSettings() {
   return {
-    phone_number: "",
+    phone_number: DEFAULT_WHATSAPP_PHONE_NORMALIZED,
     send_time: "22:00",
     is_enabled: false,
     report_type: "daily_summary",
@@ -784,7 +786,7 @@ async function loadReportSettings() {
   const rows = await response.json();
   return rows[0]
     ? {
-        phone_number: rows[0].phone_number || "",
+        phone_number: rows[0].phone_number || DEFAULT_WHATSAPP_PHONE_NORMALIZED,
         send_time: rows[0].send_time || "22:00",
         is_enabled: Boolean(rows[0].is_enabled),
         report_type: rows[0].report_type || "daily_summary",
@@ -850,7 +852,7 @@ async function saveReportSettings(nextSettings) {
 
 function mapReportSettingsRow(row) {
   return {
-    phone_number: row.phone_number || "",
+    phone_number: row.phone_number || DEFAULT_WHATSAPP_PHONE_NORMALIZED,
     send_time: row.send_time || "22:00",
     is_enabled: Boolean(row.is_enabled),
     report_type: row.report_type || "daily_summary",
