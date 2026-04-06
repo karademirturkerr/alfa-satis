@@ -7,7 +7,36 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-shell">
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <img class="auth-logo" src="assets/logo.jpg" alt="Restoran logosu">
+      <p class="eyebrow auth-eyebrow">Personel Girisi</p>
+      <h1 class="auth-title">Kasa paneline giris yap</h1>
+      <p class="auth-copy">Rolune gore sadece yetkili oldugun ekranlari gorursun.</p>
+      <form id="loginForm" class="stack-form">
+        <label>
+          Kullanici Adi
+          <input id="loginUsername" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          Sifre
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary-button" type="submit">Giris Yap</button>
+        <p id="loginStatus" class="helper-text">Admin ve personel girisi desteklenir.</p>
+      </form>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell hidden">
+    <div class="topbar">
+      <div class="user-pill">
+        <span id="currentUserName">Kullanici</span>
+        <strong id="currentUserRole">Rol</strong>
+      </div>
+      <button id="logoutButton" class="ghost-button" type="button">Cikis Yap</button>
+    </div>
+
     <header class="hero">
       <div class="hero-copy-block">
         <div class="brand-row">
@@ -16,10 +45,10 @@
             <p class="eyebrow">Lokal Kasa Paneli</p>
             <h1>Gunluk satis, tahsilat ve gider takibi</h1>
             <div class="hero-chips">
-              <button class="hero-chip" type="button" data-target="productSection">Hizli Satis</button>
-              <button class="hero-chip" type="button" data-target="summarySection">Anlik Kasa</button>
-              <button class="hero-chip" type="button" data-target="transactionsSection">Gun Sonu Ozet</button>
-              <button class="hero-chip" type="button" data-target="whatsAppSection">WhatsApp Rapor</button>
+              <button class="hero-chip" type="button" data-target="productSection" data-role-visible="admin,staff">Hizli Satis</button>
+              <button class="hero-chip" type="button" data-target="summarySection" data-role-visible="admin">Anlik Kasa</button>
+              <button class="hero-chip" type="button" data-target="transactionsSection" data-role-visible="admin">Gun Sonu Ozet</button>
+              <button class="hero-chip" type="button" data-target="whatsAppSection" data-role-visible="admin">WhatsApp Rapor</button>
             </div>
           </div>
         </div>
@@ -63,10 +92,9 @@
     </header>
 
     <main class="dashboard">
-      <section id="summarySection" class="panel summary-panel report-section">
+      <section id="summarySection" class="panel summary-panel report-section" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Gun Sonu Ozeti</h2>
-          <button id="closeDayButton" class="primary-button" type="button">Gunu Kapat</button>
         </div>
         <div class="summary-grid">
           <article class="metric-card">
@@ -93,15 +121,26 @@
         </div>
       </section>
 
-      <section id="productSection" class="panel report-section">
+      <section id="operationsSection" class="panel report-section" data-role-visible="admin,staff">
+        <div class="panel-title-row">
+          <h2>Vardiya Kontrolu</h2>
+        </div>
+        <div class="net-box total-cash-box">
+          <span id="operationStatusText">Bugun acik durumda.</span>
+          <strong id="operationNetPreview">0 TL</strong>
+          <button id="closeDayButton" class="primary-button" type="button">Gunu Kapat</button>
+        </div>
+      </section>
+
+      <section id="productSection" class="panel report-section" data-role-visible="admin,staff">
         <div class="panel-title-row">
           <h2>Urunler</h2>
-          <button id="openProductFormButton" class="primary-button" type="button">Yeni Urun</button>
+          <button id="openProductFormButton" class="primary-button" type="button" data-role-visible="admin">Yeni Urun</button>
         </div>
         <div id="productList" class="product-list"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Urun Ekle</h2>
         </div>
@@ -119,7 +158,7 @@
         <p class="helper-text">Urun kartindaki <strong>+</strong> butonu satisi direkt kasaya ekler.</p>
       </section>
 
-      <section class="panel">
+      <section class="panel" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Gider Ekle</h2>
         </div>
@@ -143,7 +182,7 @@
         </form>
       </section>
 
-      <section id="whatsAppSection" class="panel report-section">
+      <section id="whatsAppSection" class="panel report-section" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>WhatsApp Raporu</h2>
         </div>
@@ -176,7 +215,7 @@
         </form>
       </section>
 
-      <section id="transactionsSection" class="panel wide report-section">
+      <section id="transactionsSection" class="panel wide report-section" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Gunluk Kasa Hareketleri</h2>
           <div class="export-actions">
@@ -201,14 +240,14 @@
         </div>
       </section>
 
-      <section class="panel wide">
+      <section class="panel wide" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Satilan Urun Adetleri</h2>
         </div>
         <div id="salesBreakdown" class="breakdown-list"></div>
       </section>
 
-      <section class="panel wide">
+      <section class="panel wide" data-role-visible="admin">
         <div class="panel-title-row">
           <h2>Genel Kasa Toplami</h2>
         </div>

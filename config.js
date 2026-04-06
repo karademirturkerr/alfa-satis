@@ -5,5 +5,6 @@ window.APP_CONFIG = {
   supabaseTable: "app_state",
   appId: "alfa-satis-main",
   reportSettingsTable: "report_settings",
+  userProfilesTable: "user_profiles",
   whatsAppFunctionName: "send-whatsapp-report",
 };

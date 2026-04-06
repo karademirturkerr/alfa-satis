@@ -1,4 +1,5 @@
 const STORAGE_KEY = "restaurant-cash-register-v1";
+const AUTH_STORAGE_KEY = "restaurant-auth-session-v1";
 const appConfig = window.APP_CONFIG || {};
 const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
 const DEFAULT_WHATSAPP_PHONE_NORMALIZED = "905338245595";
@@ -20,7 +21,16 @@ const defaultProducts = [
 ];
 
 let state = createDefaultState();
+let currentSession = null;
+let currentProfile = null;
+let currentRole = "guest";
 
+const authScreen = document.querySelector("#authScreen");
+const appShell = document.querySelector("#appShell");
+const loginForm = document.querySelector("#loginForm");
+const loginUsername = document.querySelector("#loginUsername");
+const loginPassword = document.querySelector("#loginPassword");
+const loginStatus = document.querySelector("#loginStatus");
 const selectedDateInput = document.querySelector("#selectedDate");
 const productList = document.querySelector("#productList");
 const productForm = document.querySelector("#productForm");
@@ -41,6 +51,8 @@ const grandTotalCash = document.querySelector("#grandTotalCash");
 const recordCount = document.querySelector("#recordCount");
 const dayStatusBadge = document.querySelector("#dayStatusBadge");
 const summaryStatusText = document.querySelector("#summaryStatusText");
+const operationStatusText = document.querySelector("#operationStatusText");
+const operationNetPreview = document.querySelector("#operationNetPreview");
 const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
 const openProductFormButton = document.querySelector("#openProductFormButton");
@@ -71,6 +83,10 @@ const whatsAppEnabled = document.querySelector("#whatsAppEnabled");
 const whatsAppStatus = document.querySelector("#whatsAppStatus");
 const sendTestWhatsAppButton = document.querySelector("#sendTestWhatsAppButton");
 const openWhatsAppShareButton = document.querySelector("#openWhatsAppShareButton");
+const currentUserName = document.querySelector("#currentUserName");
+const currentUserRole = document.querySelector("#currentUserRole");
+const logoutButton = document.querySelector("#logoutButton");
+const roleAwareElements = document.querySelectorAll("[data-role-visible]");
 
 let reportSettings = createDefaultReportSettings();
 
@@ -79,25 +95,66 @@ let pendingProductId = null;
 initialize();
 
 async function initialize() {
-  selectedDateInput.value = todayKey();
   bindEvents();
-  setUiDisabled(true);
+  selectedDateInput.value = todayKey();
 
-  try {
-    state = await loadState();
-    reportSettings = await loadReportSettings();
-  } catch (error) {
-    console.error("Veriler yuklenemedi, lokal yedek aciliyor.", error);
+  if (!isRemoteStorageEnabled()) {
+    currentRole = "admin";
+    currentProfile = { username: "local-admin", role: "admin", full_name: "Local Admin" };
     state = createDefaultState();
     reportSettings = createDefaultReportSettings();
+    setAuthenticatedView(true);
+    applyRoleVisibility();
+    renderAuthMeta();
+    renderReportSettings();
+    render();
+    return;
   }
 
-  setUiDisabled(false);
-  renderReportSettings();
-  render();
+  const restoredSession = restoreSession();
+  if (!restoredSession) {
+    setAuthenticatedView(false);
+    return;
+  }
+
+  await hydrateAuthenticatedApp(restoredSession);
 }
 
 function bindEvents() {
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+
+    if (!username || !password) {
+      setLoginStatus("Kullanici adi ve sifre zorunlu.", true);
+      return;
+    }
+
+    try {
+      setLoginStatus("Giris yapiliyor...");
+      const session = await signInWithUsername(username, password);
+      persistSession(session);
+      await hydrateAuthenticatedApp(session);
+      loginForm.reset();
+      setLoginStatus("Giris basarili.");
+    } catch (error) {
+      console.error(error);
+      clearSession();
+      setAuthenticatedView(false);
+      setLoginStatus("Giris basarisiz. Bilgileri kontrol et.", true);
+    }
+  });
+
+  logoutButton.addEventListener("click", () => {
+    clearSession();
+    currentProfile = null;
+    currentRole = "guest";
+    setAuthenticatedView(false);
+    setLoginStatus("Cikis yapildi.");
+  });
+
   selectedDateInput.addEventListener("change", render);
 
   heroChips.forEach((chip) => {
@@ -341,11 +398,69 @@ function bindEvents() {
 }
 
 function render() {
+  applyRoleVisibility();
   renderProducts();
   renderTransactions();
   renderSummary();
   renderBreakdown();
   renderGrandTotalCash();
+}
+
+function setAuthenticatedView(isAuthenticated) {
+  authScreen.classList.toggle("hidden", isAuthenticated);
+  appShell.classList.toggle("hidden", !isAuthenticated);
+}
+
+function applyRoleVisibility() {
+  roleAwareElements.forEach((element) => {
+    const allowedRoles = (element.dataset.roleVisible || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (allowedRoles.length === 0) {
+      return;
+    }
+
+    const isAllowed = allowedRoles.includes(currentRole);
+    element.classList.toggle("hidden", !isAllowed);
+  });
+}
+
+function renderAuthMeta() {
+  currentUserName.textContent =
+    currentProfile?.full_name || currentProfile?.username || currentProfile?.email || "Kullanici";
+  currentUserRole.textContent = currentRole === "admin" ? "Admin" : currentRole === "staff" ? "Personel" : "Misafir";
+}
+
+async function hydrateAuthenticatedApp(session) {
+  setUiDisabled(true);
+
+  try {
+    currentSession = session;
+    currentProfile = await loadCurrentProfile(session);
+    currentRole = currentProfile?.role || "staff";
+    state = await loadState();
+    reportSettings = await loadReportSettings();
+    setAuthenticatedView(true);
+    renderAuthMeta();
+    renderReportSettings();
+    render();
+  } catch (error) {
+    console.error(error);
+    clearSession();
+    currentProfile = null;
+    currentRole = "guest";
+    setAuthenticatedView(false);
+    setLoginStatus("Oturum yuklenemedi. Tekrar giris yap.", true);
+  } finally {
+    setUiDisabled(false);
+  }
+}
+
+function setLoginStatus(message, isError = false) {
+  loginStatus.textContent = message;
+  loginStatus.style.color = isError ? "var(--danger)" : "";
 }
 
 function renderReportSettings() {
@@ -463,6 +578,10 @@ function renderSummary() {
   summaryStatusText.textContent = currentDay.isClosed
     ? "Bu gun kapatildi ve toplam kasaya eklendi."
     : "Bu gun henuz kapatilmadi.";
+  operationStatusText.textContent = currentDay.isClosed
+    ? "Vardiya kapatildi. Net kasa toplam kasaya islendi."
+    : "Vardiya acik. Gun sonu kontrolunden sonra kapatabilirsin.";
+  operationNetPreview.textContent = formatCurrency(revenue - expense);
 }
 
 function renderGrandTotalCash() {
@@ -806,6 +925,101 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
   return lines.join("\n");
 }
 
+async function signInWithUsername(usernameOrEmail, password) {
+  const email = usernameOrEmail.includes("@")
+    ? usernameOrEmail
+    : await resolveEmailByUsername(usernameOrEmail);
+
+  const response = await fetch(`${appConfig.supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: appConfig.supabaseAnonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Giris basarisiz: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function resolveEmailByUsername(username) {
+  const response = await fetch(
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.userProfilesTable}?username=eq.${encodeURIComponent(username)}&select=email`,
+    {
+      headers: createSupabaseHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Kullanici bulunamadi: ${response.status}`);
+  }
+
+  const rows = await response.json();
+  if (!rows[0]?.email) {
+    throw new Error("Kullanici bulunamadi.");
+  }
+
+  return rows[0].email;
+}
+
+async function loadCurrentProfile(session) {
+  const userId = session?.user?.id;
+  if (!userId) {
+    throw new Error("Oturum kullanicisi bulunamadi.");
+  }
+
+  const response = await fetch(
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.userProfilesTable}?id=eq.${encodeURIComponent(userId)}&select=id,email,username,full_name,role`,
+    {
+      headers: createAuthenticatedHeaders(session.access_token),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Profil yuklenemedi: ${response.status}`);
+  }
+
+  const rows = await response.json();
+  if (!rows[0]) {
+    throw new Error("Kullanici profili bulunamadi.");
+  }
+
+  return rows[0];
+}
+
+function persistSession(session) {
+  currentSession = session;
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+}
+
+function restoreSession() {
+  const rawValue = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    currentSession = parsed;
+    return parsed;
+  } catch (error) {
+    console.error("Oturum okunamadi.", error);
+    return null;
+  }
+}
+
+function clearSession() {
+  currentSession = null;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
 async function loadReportSettings() {
   if (!isRemoteStorageEnabled()) {
     return createDefaultReportSettings();
@@ -1053,9 +1267,17 @@ async function persistRemoteState() {
 }
 
 function createSupabaseHeaders() {
+  const bearerToken = currentSession?.access_token || appConfig.supabaseAnonKey;
   return {
     apikey: appConfig.supabaseAnonKey,
-    Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
+    Authorization: `Bearer ${bearerToken}`,
+  };
+}
+
+function createAuthenticatedHeaders(accessToken) {
+  return {
+    apikey: appConfig.supabaseAnonKey,
+    Authorization: `Bearer ${accessToken}`,
   };
 }
 

@@ -60,6 +60,90 @@ body::before {
   position: relative;
 }
 
+.hidden {
+  display: none !important;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(100%, 480px);
+  padding: 34px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 245, 236, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    linear-gradient(135deg, rgba(92, 15, 8, 0.2), rgba(255, 184, 92, 0.07));
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(14px);
+  color: var(--hero-text);
+}
+
+.auth-logo {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 26px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255, 244, 236, 0.22);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.2);
+}
+
+.auth-title {
+  max-width: none;
+  margin-bottom: 10px;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+}
+
+.auth-copy {
+  color: var(--hero-muted);
+  margin-bottom: 22px;
+}
+
+.auth-card label {
+  color: var(--hero-text);
+}
+
+.auth-card input {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 248, 241, 0.1);
+  border: 1px solid rgba(255, 245, 236, 0.14);
+  color: var(--hero-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.user-pill span {
+  color: var(--hero-muted);
+}
+
+.user-pill strong {
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.7fr) minmax(280px, 0.9fr);
@@ -515,6 +599,7 @@ select:focus {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 10px;
 }
 
 .product-list,
@@ -644,10 +729,6 @@ select:focus {
   width: 18px;
   height: 18px;
   margin: 0;
-}
-
-.hidden {
-  display: none;
 }
 
 .table-wrap {
@@ -801,6 +882,16 @@ tbody tr:hover {
 }
 
 @media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-pill {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .app-shell {
     width: min(100% - 18px, 1280px);
     padding-top: 18px;
