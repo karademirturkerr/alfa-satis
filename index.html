@@ -37,7 +37,6 @@
       <section class="panel summary-panel">
         <div class="panel-title-row">
           <h2>Gun Sonu Ozeti</h2>
-          <button id="resetDayButton" class="ghost-button" type="button">Gunu Temizle</button>
         </div>
         <div class="summary-grid">
           <article class="metric-card">
@@ -45,11 +44,11 @@
             <strong id="totalRevenue">0 TL</strong>
           </article>
           <article class="metric-card">
-            <span>POS</span>
-            <strong id="totalPos">0 TL</strong>
+            <span>Banka Kasasi</span>
+            <strong id="totalBank">0 TL</strong>
           </article>
           <article class="metric-card">
-            <span>Nakit</span>
+            <span>Nakit Kasa</span>
             <strong id="totalCash">0 TL</strong>
           </article>
           <article class="metric-card expense">
@@ -102,6 +101,13 @@
             Tutar (TL)
             <input id="expenseAmount" name="expenseAmount" type="number" min="0" step="0.01" placeholder="0.00" required>
           </label>
+          <label>
+            Hangi Kasadan Cikti?
+            <select id="expensePaymentType" name="expensePaymentType" required>
+              <option value="cash">Nakit Kasasi</option>
+              <option value="bank">Banka Kasasi</option>
+            </select>
+          </label>
           <button class="primary-button" type="submit">Gider Kaydet</button>
         </form>
       </section>
@@ -109,6 +115,10 @@
       <section class="panel wide">
         <div class="panel-title-row">
           <h2>Gunluk Kasa Hareketleri</h2>
+          <div class="export-actions">
+            <button id="exportExcelButton" class="secondary-button" type="button">Gunlugu Aktar</button>
+            <button id="exportRangeButton" class="ghost-button" type="button">Tarih Araligi Aktar</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -169,11 +179,30 @@
         <select id="editPaymentType">
           <option value="cash">Nakit</option>
           <option value="pos">POS</option>
+          <option value="bank">Banka Kasasi</option>
         </select>
       </label>
       <div class="dialog-actions">
         <button class="primary-button" type="submit">Kaydet</button>
         <button id="closeEditDialogButton" class="ghost-button" type="button">Iptal</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="exportRangeDialog" class="payment-dialog">
+    <form id="exportRangeForm" class="dialog-card">
+      <h3>Tarih Araligini Aktar</h3>
+      <label>
+        Baslangic Tarihi
+        <input id="rangeStartDate" type="date" required>
+      </label>
+      <label>
+        Bitis Tarihi
+        <input id="rangeEndDate" type="date" required>
+      </label>
+      <div class="dialog-actions">
+        <button class="primary-button" type="submit">Disa Aktar</button>
+        <button id="closeRangeDialogButton" class="ghost-button" type="button">Iptal</button>
       </div>
     </form>
   </dialog>

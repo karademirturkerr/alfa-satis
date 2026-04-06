@@ -361,6 +361,12 @@ select {
   width: 100%;
 }
 
+.export-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .table-actions {
   display: flex;
   gap: 8px;

@@ -26,10 +26,11 @@ const productPriceInput = document.querySelector("#productPrice");
 const expenseForm = document.querySelector("#expenseForm");
 const expenseTitleInput = document.querySelector("#expenseTitle");
 const expenseAmountInput = document.querySelector("#expenseAmount");
+const expensePaymentTypeInput = document.querySelector("#expensePaymentType");
 const transactionTableBody = document.querySelector("#transactionTableBody");
 const salesBreakdown = document.querySelector("#salesBreakdown");
 const totalRevenue = document.querySelector("#totalRevenue");
-const totalPos = document.querySelector("#totalPos");
+const totalBank = document.querySelector("#totalBank");
 const totalCash = document.querySelector("#totalCash");
 const totalExpense = document.querySelector("#totalExpense");
 const netAmount = document.querySelector("#netAmount");
@@ -37,7 +38,8 @@ const recordCount = document.querySelector("#recordCount");
 const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
 const openProductFormButton = document.querySelector("#openProductFormButton");
-const resetDayButton = document.querySelector("#resetDayButton");
+const exportExcelButton = document.querySelector("#exportExcelButton");
+const exportRangeButton = document.querySelector("#exportRangeButton");
 const editDialog = document.querySelector("#editDialog");
 const editTransactionForm = document.querySelector("#editTransactionForm");
 const editTransactionId = document.querySelector("#editTransactionId");
@@ -48,6 +50,11 @@ const editAmountInput = document.querySelector("#editAmountInput");
 const editPaymentField = document.querySelector("#editPaymentField");
 const editPaymentType = document.querySelector("#editPaymentType");
 const closeEditDialogButton = document.querySelector("#closeEditDialogButton");
+const exportRangeDialog = document.querySelector("#exportRangeDialog");
+const exportRangeForm = document.querySelector("#exportRangeForm");
+const rangeStartDate = document.querySelector("#rangeStartDate");
+const rangeEndDate = document.querySelector("#rangeEndDate");
+const closeRangeDialogButton = document.querySelector("#closeRangeDialogButton");
 
 let pendingProductId = null;
 
@@ -118,7 +125,7 @@ function bindEvents() {
       type: "expense",
       title,
       amount,
-      paymentType: "-",
+      paymentType: expensePaymentTypeInput.value,
       createdAt: new Date().toISOString(),
     });
 
@@ -138,19 +145,15 @@ function bindEvents() {
     pendingProductId = null;
   });
 
-  resetDayButton.addEventListener("click", () => {
-    const currentDate = getSelectedDate();
-    const shouldDelete = window.confirm(
-      `${currentDate} tarihindeki tum hareketleri silmek istiyor musun?`
-    );
+  exportExcelButton.addEventListener("click", () => {
+    exportCurrentDayReport();
+  });
 
-    if (!shouldDelete) {
-      return;
-    }
-
-    state.days[currentDate] = { transactions: [] };
-    void persist();
-    render();
+  exportRangeButton.addEventListener("click", () => {
+    const selectedDate = getSelectedDate();
+    rangeStartDate.value = selectedDate;
+    rangeEndDate.value = selectedDate;
+    exportRangeDialog.showModal();
   });
 
   editTransactionForm.addEventListener("submit", (event) => {
@@ -170,7 +173,7 @@ function bindEvents() {
     } else {
       transaction.title = editTitleInput.value.trim();
       transaction.amount = Number(editAmountInput.value);
-      transaction.paymentType = "-";
+      transaction.paymentType = editPaymentType.value;
     }
 
     if (!transaction.title || Number.isNaN(transaction.amount) || transaction.amount <= 0) {
@@ -194,6 +197,26 @@ function bindEvents() {
 
   closeEditDialogButton.addEventListener("click", () => {
     editDialog.close();
+  });
+
+  exportRangeForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    if (!rangeStartDate.value || !rangeEndDate.value) {
+      return;
+    }
+
+    if (rangeStartDate.value > rangeEndDate.value) {
+      window.alert("Baslangic tarihi bitis tarihinden sonra olamaz.");
+      return;
+    }
+
+    exportDateRangeReport(rangeStartDate.value, rangeEndDate.value);
+    exportRangeDialog.close();
+  });
+
+  closeRangeDialogButton.addEventListener("click", () => {
+    exportRangeDialog.close();
   });
 }
 
@@ -252,12 +275,7 @@ function renderTransactions() {
   transactions.forEach((transaction) => {
     const row = document.createElement("tr");
     const isSale = transaction.type === "sale";
-    const paymentLabel =
-      transaction.paymentType === "cash"
-        ? "Nakit"
-        : transaction.paymentType === "pos"
-          ? "POS"
-          : "-";
+    const paymentLabel = getPaymentLabel(transaction.paymentType);
 
     row.innerHTML = `
       <td>${formatTime(transaction.createdAt)}</td>
@@ -294,14 +312,20 @@ function renderSummary() {
   const cash = sales
     .filter((item) => item.paymentType === "cash")
     .reduce((sum, item) => sum + item.amount, 0);
-  const pos = sales
+  const bank = sales
     .filter((item) => item.paymentType === "pos")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const cashExpenses = expenses
+    .filter((item) => item.paymentType === "cash")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const bankExpenses = expenses
+    .filter((item) => item.paymentType === "bank")
     .reduce((sum, item) => sum + item.amount, 0);
   const expense = expenses.reduce((sum, item) => sum + item.amount, 0);
 
   totalRevenue.textContent = formatCurrency(revenue);
-  totalCash.textContent = formatCurrency(cash);
-  totalPos.textContent = formatCurrency(pos);
+  totalCash.textContent = formatCurrency(cash - cashExpenses);
+  totalBank.textContent = formatCurrency(bank - bankExpenses);
   totalExpense.textContent = formatCurrency(expense);
   netAmount.textContent = formatCurrency(revenue - expense);
 }
@@ -388,7 +412,8 @@ function openEditDialog(transactionId) {
     renderEditProductOptions(transaction.productId);
   } else {
     editProductField.classList.add("hidden");
-    editPaymentField.classList.add("hidden");
+    editPaymentField.classList.remove("hidden");
+    editPaymentType.value = transaction.paymentType === "bank" ? "bank" : "cash";
     editProductSelect.innerHTML = "";
   }
 
@@ -417,6 +442,139 @@ function deleteTransaction(transactionId) {
   currentDay.transactions = currentDay.transactions.filter((item) => item.id !== transactionId);
   void persist();
   render();
+}
+
+function exportCurrentDayReport() {
+  const selectedDate = getSelectedDate();
+  const currentDay = getCurrentDay();
+  const lines = buildReportLines(`${selectedDate} Gunluk Rapor`, currentDay.transactions);
+  downloadCsv(`kasa-raporu-${selectedDate}.csv`, lines);
+}
+
+function exportDateRangeReport(startDate, endDate) {
+  const dayKeys = Object.keys(state.days)
+    .filter((dayKey) => dayKey >= startDate && dayKey <= endDate)
+    .sort();
+
+  const rangeTransactions = dayKeys.flatMap((dayKey) =>
+    (state.days[dayKey]?.transactions || []).map((transaction) => ({
+      ...transaction,
+      reportDate: dayKey,
+    }))
+  );
+
+  const lines = buildReportLines(`${startDate} - ${endDate} Tarih Araligi`, rangeTransactions, true);
+  downloadCsv(`kasa-raporu-${startDate}-${endDate}.csv`, lines);
+}
+
+function buildReportLines(title, transactions, includeDateColumn = false) {
+  const sales = transactions.filter((item) => item.type === "sale");
+  const expenses = transactions.filter((item) => item.type === "expense");
+
+  const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
+  const cash = sales
+    .filter((item) => item.paymentType === "cash")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const bank = sales
+    .filter((item) => item.paymentType === "pos")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const cashExpenses = expenses
+    .filter((item) => item.paymentType === "cash")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const bankExpenses = expenses
+    .filter((item) => item.paymentType === "bank")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const net = revenue - expenseTotal;
+
+  const groupedSales = sales.reduce((accumulator, item) => {
+    if (!accumulator[item.title]) {
+      accumulator[item.title] = { count: 0, total: 0 };
+    }
+
+    accumulator[item.title].count += 1;
+    accumulator[item.title].total += item.amount;
+    return accumulator;
+  }, {});
+
+  const transactionHeader = includeDateColumn
+    ? ["Tarih", "Saat", "Tur", "Aciklama", "Odeme", "Tutar"]
+    : ["Saat", "Tur", "Aciklama", "Odeme", "Tutar"];
+
+  const transactionRows = [...transactions]
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map((item) => {
+      const baseRow = [
+        formatTime(item.createdAt),
+        item.type === "sale" ? "Satis" : "Gider",
+        item.title,
+        getPaymentLabel(item.paymentType),
+        toExcelNumber(item.amount),
+      ];
+
+      return includeDateColumn ? [item.reportDate || "", ...baseRow] : baseRow;
+    });
+
+  return [
+    ["Rapor", title],
+    [],
+    ["Ozet"],
+    ["Total Ciro", toExcelNumber(revenue)],
+    ["Banka Kasasi", toExcelNumber(bank - bankExpenses)],
+    ["Nakit Kasa", toExcelNumber(cash - cashExpenses)],
+    ["Gider", toExcelNumber(expenseTotal)],
+    ["Net Kasa", toExcelNumber(net)],
+    [],
+    ["Satilan Urunler"],
+    ["Urun", "Adet", "Toplam"],
+    ...Object.entries(groupedSales)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([productTitle, data]) => [productTitle, data.count, toExcelNumber(data.total)]),
+    [],
+    ["Kasa Hareketleri"],
+    transactionHeader,
+    ...transactionRows,
+  ];
+}
+
+function downloadCsv(fileName, lines) {
+  const csvContent = "\uFEFF" + lines.map((row) => row.map(escapeCsvCell).join(";")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvCell(value) {
+  const stringValue = String(value ?? "");
+  const escapedValue = stringValue.replaceAll("\"", "\"\"");
+  return `"${escapedValue}"`;
+}
+
+function toExcelNumber(value) {
+  return Number(value).toFixed(2).replace(".", ",");
+}
+
+function getPaymentLabel(paymentType) {
+  if (paymentType === "cash") {
+    return "Nakit";
+  }
+
+  if (paymentType === "pos") {
+    return "POS";
+  }
+
+  if (paymentType === "bank") {
+    return "Banka Kasasi";
+  }
+
+  return "-";
 }
 
 function getSelectedDate() {
