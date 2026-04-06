@@ -1,6 +1,7 @@
 :root {
   --bg: #f13b2a;
   --bg-deep: #cf2617;
+  --bg-night: #86180f;
   --surface: rgba(255, 248, 241, 0.94);
   --surface-strong: #fffaf5;
   --surface-soft: rgba(255, 244, 235, 0.78);
@@ -33,10 +34,10 @@ body {
   font-family: Bahnschrift, "Trebuchet MS", "Segoe UI", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(255, 213, 157, 0.28), transparent 26%),
-    radial-gradient(circle at 85% 10%, rgba(255, 177, 68, 0.18), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(112, 15, 6, 0.16), transparent 28%),
-    linear-gradient(180deg, #f95a43 0%, var(--bg) 28%, var(--bg-deep) 100%);
+    radial-gradient(circle at top left, rgba(255, 213, 157, 0.34), transparent 24%),
+    radial-gradient(circle at 82% 8%, rgba(255, 177, 68, 0.2), transparent 22%),
+    radial-gradient(circle at 18% 88%, rgba(112, 15, 6, 0.22), transparent 30%),
+    linear-gradient(180deg, #ff654e 0%, var(--bg) 24%, var(--bg-deep) 68%, var(--bg-night) 100%);
 }
 
 body::before {
@@ -60,17 +61,16 @@ body::before {
 }
 
 .hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.7fr) minmax(280px, 0.9fr);
   gap: 24px;
   margin-bottom: 28px;
-  padding: 28px;
+  padding: 30px;
   border-radius: 36px;
   border: 1px solid rgba(255, 245, 236, 0.16);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
-    linear-gradient(120deg, rgba(92, 15, 8, 0.14), rgba(255, 184, 92, 0.06));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    linear-gradient(120deg, rgba(92, 15, 8, 0.18), rgba(255, 184, 92, 0.05));
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-lg);
   position: relative;
@@ -80,11 +80,19 @@ body::before {
 .hero::before {
   content: "";
   position: absolute;
-  inset: auto -8% -46% auto;
-  width: 380px;
-  height: 380px;
+  inset: auto -8% -42% auto;
+  width: 420px;
+  height: 420px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 208, 122, 0.32), transparent 68%);
+  background: radial-gradient(circle, rgba(255, 208, 122, 0.4), transparent 68%);
+}
+
+.hero-copy-block::after {
+  content: "";
+  width: 140px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 190, 85, 1), rgba(255, 255, 255, 0.55));
 }
 
 .hero::after {
@@ -111,12 +119,12 @@ body::before {
 }
 
 .brand-logo {
-  width: 108px;
-  height: 108px;
+  width: 112px;
+  height: 112px;
   object-fit: cover;
   border-radius: 30px;
   border: 1px solid rgba(255, 244, 236, 0.28);
-  box-shadow: 0 22px 38px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.22);
 }
 
 .brand-text {
@@ -157,10 +165,10 @@ h2 {
 
 .hero-copy {
   margin-bottom: 0;
-  max-width: 780px;
+  max-width: 720px;
   color: var(--hero-muted);
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 1.04rem;
+  line-height: 1.65;
 }
 
 .hero-chips {
@@ -204,6 +212,7 @@ h2 {
   box-shadow: var(--shadow-md);
   position: relative;
   z-index: 1;
+  align-self: start;
 }
 
 .date-card::before {
@@ -213,6 +222,82 @@ h2 {
   width: 6px;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+}
+
+.hero-side-card {
+  align-self: stretch;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 244, 236, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 246, 0.14), rgba(255, 250, 246, 0.08));
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-md);
+  color: var(--hero-text);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.hero-side-card::before {
+  content: "";
+  position: absolute;
+  inset: auto -20% -30% auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 208, 122, 0.32), transparent 72%);
+}
+
+.side-eyebrow {
+  margin-bottom: 10px;
+  color: rgba(255, 246, 238, 0.72);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.hero-side-card h3 {
+  margin-bottom: 18px;
+  font-size: 1.18rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  max-width: 220px;
+}
+
+.hero-side-list {
+  display: grid;
+  gap: 14px;
+}
+
+.hero-side-item {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.hero-side-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 6px;
+  background: linear-gradient(180deg, var(--gold), #fff0c4);
+  box-shadow: 0 0 0 5px rgba(255, 190, 85, 0.16);
+}
+
+.hero-side-item strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 4px;
+}
+
+.hero-side-item p {
+  margin-bottom: 0;
+  color: rgba(255, 246, 238, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .date-card label {
@@ -267,13 +352,13 @@ select:focus {
 
 .panel {
   grid-column: span 4;
-  padding: 22px;
-  border-radius: 30px;
+  padding: 24px;
+  border-radius: 32px;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(86, 41, 26, 0.09);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.2)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.18)),
     var(--surface);
   box-shadow: var(--shadow-md);
 }
@@ -289,12 +374,12 @@ select:focus {
 .panel::after {
   content: "";
   position: absolute;
-  top: -30%;
-  right: -10%;
-  width: 180px;
-  height: 180px;
+  top: -34%;
+  right: -12%;
+  width: 210px;
+  height: 210px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 208, 140, 0.18), transparent 66%);
+  background: radial-gradient(circle, rgba(255, 208, 140, 0.2), transparent 66%);
   pointer-events: none;
 }
 
@@ -311,6 +396,22 @@ select:focus {
   margin-bottom: 20px;
   position: relative;
   z-index: 1;
+}
+
+.panel-title-row h2 {
+  position: relative;
+  padding-left: 14px;
+}
+
+.panel-title-row h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--gold-deep), var(--gold));
 }
 
 .summary-grid {
@@ -333,8 +434,19 @@ select:focus {
 }
 
 .metric-card {
-  padding: 20px;
-  border-radius: 24px;
+  padding: 22px;
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.metric-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -35% auto;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 196, 93, 0.18), transparent 68%);
 }
 
 .metric-card span,
@@ -362,7 +474,7 @@ select:focus {
   padding: 20px 22px;
   border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(255, 211, 127, 0.24), rgba(255, 255, 255, 0.8)),
+    linear-gradient(135deg, rgba(255, 211, 127, 0.28), rgba(255, 255, 255, 0.8)),
     rgba(255, 248, 242, 0.92);
 }
 
@@ -381,7 +493,15 @@ select:focus {
   align-items: center;
   gap: 16px;
   padding: 16px 18px;
-  border-radius: 22px;
+  border-radius: 24px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.product-item:hover,
+.breakdown-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 166, 74, 0.26);
+  box-shadow: 0 16px 28px rgba(54, 20, 11, 0.12);
 }
 
 .product-meta strong,
@@ -495,9 +615,11 @@ select:focus {
   overflow-x: auto;
   position: relative;
   z-index: 1;
-  border-radius: 24px;
+  border-radius: 28px;
   border: 1px solid rgba(86, 41, 26, 0.08);
-  background: rgba(255, 252, 249, 0.8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 250, 246, 0.82));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 table {
@@ -524,7 +646,7 @@ thead th {
 }
 
 tbody tr:hover {
-  background: rgba(255, 239, 225, 0.48);
+  background: rgba(255, 236, 214, 0.6);
 }
 
 .badge {
@@ -587,11 +709,11 @@ tbody tr:hover {
 
 .dialog-card {
   min-width: min(92vw, 390px);
-  padding: 26px;
-  border-radius: 28px;
+  padding: 28px;
+  border-radius: 30px;
   border: 1px solid rgba(86, 41, 26, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.22)),
     var(--surface-strong);
   box-shadow: var(--shadow-lg);
 }
@@ -627,7 +749,7 @@ tbody tr:hover {
 
 @media (max-width: 980px) {
   .hero {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .panel {
@@ -659,6 +781,10 @@ tbody tr:hover {
     width: 88px;
     height: 88px;
     border-radius: 24px;
+  }
+
+  .hero-side-card h3 {
+    max-width: none;
   }
 
   .summary-grid,
