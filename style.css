@@ -1,0 +1,492 @@
+:root {
+  --bg: #ff2a17;
+  --panel: rgba(255, 247, 238, 0.96);
+  --ink: #1c120c;
+  --muted: #71483d;
+  --line: rgba(65, 23, 12, 0.14);
+  --accent: #111111;
+  --accent-dark: #000000;
+  --teal: #40261d;
+  --danger: #8f0e0e;
+  --shadow: 0 18px 40px rgba(53, 10, 5, 0.18);
+  --hero-text: #fff5ea;
+  --hero-muted: rgba(255, 245, 234, 0.82);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Bahnschrift, "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(255, 214, 161, 0.22), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 111, 0, 0.24), transparent 26%),
+    linear-gradient(180deg, #ff3b25 0%, var(--bg) 100%);
+}
+
+.app-shell {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+  position: relative;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 24px;
+  position: relative;
+  padding: 10px 0 18px;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 10px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #ffd166 0 48px,
+      #101010 48px 72px,
+      #fff5ea 72px 96px
+    );
+  opacity: 0.92;
+}
+
+.hero-copy-block {
+  display: grid;
+  gap: 18px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-logo {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 28px;
+  border: 3px solid rgba(255, 245, 234, 0.32);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.brand-text {
+  display: grid;
+  gap: 8px;
+}
+
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 245, 234, 0.14);
+  border: 1px solid rgba(255, 245, 234, 0.22);
+  color: var(--hero-text);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--hero-text);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 3vw, 3.2rem);
+  line-height: 1;
+  margin-bottom: 0;
+  color: var(--hero-text);
+}
+
+.hero-copy {
+  max-width: 720px;
+  color: var(--hero-muted);
+  margin-bottom: 0;
+  font-size: 1.02rem;
+}
+
+.date-card,
+.panel,
+.metric-card,
+.net-box,
+.product-item,
+.breakdown-item {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.date-card {
+  min-width: 220px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 245, 234, 0.18);
+  border-color: rgba(255, 245, 234, 0.24);
+  color: var(--hero-text);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.date-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 8px;
+  background: linear-gradient(180deg, #ffd166 0%, #ff9f1c 100%);
+}
+
+.date-card label,
+label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.date-card label {
+  color: var(--hero-text);
+}
+
+.date-card input {
+  background: rgba(255, 250, 245, 0.92);
+}
+
+.date-card #recordCount {
+  color: var(--hero-muted);
+}
+
+input,
+button {
+  font: inherit;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+.panel {
+  grid-column: span 4;
+  padding: 20px;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, #ff9f1c 0%, #ffd166 40%, #111111 100%);
+}
+
+.panel.wide,
+.summary-panel {
+  grid-column: span 12;
+}
+
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric-card {
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 247, 238, 0.96));
+}
+
+.metric-card span,
+.net-box span {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.metric-card strong,
+.net-box strong {
+  font-size: 1.7rem;
+}
+
+.metric-card.expense strong {
+  color: var(--danger);
+}
+
+.net-box {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.22), rgba(255, 255, 255, 0.75));
+}
+
+.product-list,
+.breakdown-list {
+  display: grid;
+  gap: 12px;
+}
+
+.product-item,
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border-radius: 18px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 243, 231, 0.96));
+}
+
+.product-meta strong,
+.breakdown-meta strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.product-meta span,
+.breakdown-meta span,
+.helper-text,
+#recordCount {
+  color: var(--muted);
+}
+
+.plus-button,
+.primary-button,
+.secondary-button,
+.ghost-button {
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+}
+
+.plus-button:hover,
+.primary-button:hover,
+.secondary-button:hover,
+.ghost-button:hover {
+  transform: translateY(-1px);
+}
+
+.plus-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  background: #101010;
+  color: #ffe6d6;
+  font-size: 1.5rem;
+  box-shadow: inset 0 -4px 0 rgba(255, 209, 102, 0.22);
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button {
+  padding: 11px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.primary-button {
+  background: #111111;
+  color: #fff6ef;
+  box-shadow: inset 0 -4px 0 rgba(255, 209, 102, 0.18);
+}
+
+.secondary-button {
+  background: #ff9f1c;
+  color: #22150f;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}
+
+.ghost-button {
+  background: rgba(17, 17, 17, 0.08);
+  color: #24150f;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.stack-form {
+  display: grid;
+  gap: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+thead th {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.badge.sale {
+  background: rgba(34, 124, 112, 0.14);
+  color: var(--teal);
+}
+
+.badge.expense {
+  background: rgba(158, 42, 43, 0.12);
+  color: var(--danger);
+}
+
+.badge.payment {
+  background: rgba(255, 159, 28, 0.22);
+  color: #8a4200;
+}
+
+.payment-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.payment-dialog::backdrop {
+  background: rgba(25, 16, 10, 0.45);
+}
+
+.dialog-card {
+  min-width: min(92vw, 360px);
+  padding: 24px;
+  border-radius: 24px;
+  background: #fff6ef;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0 12px;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .brand-row {
+    align-items: flex-start;
+  }
+
+  .hero::after {
+    bottom: -2px;
+  }
+
+  .panel {
+    grid-column: span 12;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    width: min(100% - 20px, 1200px);
+    padding-top: 20px;
+  }
+
+  .brand-row {
+    flex-direction: column;
+  }
+
+  .brand-logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .hero-chip {
+    font-size: 0.78rem;
+  }
+
+  .summary-grid,
+  .dialog-actions {
+    grid-template-columns: 1fr;
+  }
+}
