@@ -215,12 +215,12 @@
         </form>
       </section>
 
-      <section id="transactionsSection" class="panel wide report-section" data-role-visible="admin">
+      <section id="transactionsSection" class="panel wide report-section" data-role-visible="admin,staff">
         <div class="panel-title-row">
-          <h2>Gunluk Kasa Hareketleri</h2>
+          <h2 id="transactionsSectionTitle">Gunluk Kasa Hareketleri</h2>
           <div class="export-actions">
-            <button id="exportExcelButton" class="secondary-button" type="button">Gunlugu Aktar</button>
-            <button id="exportRangeButton" class="ghost-button" type="button">Tarih Araligi Aktar</button>
+            <button id="exportExcelButton" class="secondary-button" type="button" data-role-visible="admin">Gunlugu Aktar</button>
+            <button id="exportRangeButton" class="ghost-button" type="button" data-role-visible="admin">Tarih Araligi Aktar</button>
           </div>
         </div>
         <div class="table-wrap">
@@ -232,6 +232,7 @@
                 <th>Aciklama</th>
                 <th>Odeme</th>
                 <th>Tutar</th>
+                <th>Durum</th>
                 <th>Islem</th>
               </tr>
             </thead>

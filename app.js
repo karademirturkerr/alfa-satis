@@ -53,6 +53,7 @@ const dayStatusBadge = document.querySelector("#dayStatusBadge");
 const summaryStatusText = document.querySelector("#summaryStatusText");
 const operationStatusText = document.querySelector("#operationStatusText");
 const operationNetPreview = document.querySelector("#operationNetPreview");
+const transactionsSectionTitle = document.querySelector("#transactionsSectionTitle");
 const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
 const openProductFormButton = document.querySelector("#openProductFormButton");
@@ -399,11 +400,20 @@ function bindEvents() {
 
 function render() {
   applyRoleVisibility();
+  renderRoleSpecificLabels();
   renderProducts();
   renderTransactions();
   renderSummary();
   renderBreakdown();
   renderGrandTotalCash();
+}
+
+function renderRoleSpecificLabels() {
+  if (currentRole === "staff") {
+    transactionsSectionTitle.textContent = "Bugun Eklenen Hareketler";
+  } else {
+    transactionsSectionTitle.textContent = "Gunluk Kasa Hareketleri";
+  }
 }
 
 function setAuthenticatedView(isAuthenticated) {
@@ -520,6 +530,9 @@ function renderTransactions() {
     const row = document.createElement("tr");
     const isSale = transaction.type === "sale";
     const paymentLabel = getPaymentLabel(transaction.paymentType);
+    const isDeleted = Boolean(transaction.deletedAt);
+
+    row.classList.toggle("deleted-row", isDeleted);
 
     row.innerHTML = `
       <td>${formatTime(transaction.createdAt)}</td>
@@ -527,10 +540,11 @@ function renderTransactions() {
       <td>${escapeHtml(transaction.title)}</td>
       <td><span class="badge payment">${paymentLabel}</span></td>
       <td>${formatCurrency(transaction.amount)}</td>
+      <td><span class="badge ${isDeleted ? "deleted" : "active"}">${isDeleted ? "Silindi" : "Aktif"}</span></td>
       <td>
         <div class="table-actions">
-          <button class="table-action-button edit" type="button" data-action="edit" data-id="${transaction.id}">Duzenle</button>
-          <button class="table-action-button delete" type="button" data-action="delete" data-id="${transaction.id}">Sil</button>
+          <button class="table-action-button edit" type="button" data-action="edit" data-id="${transaction.id}" ${isDeleted ? "disabled" : ""}>Duzenle</button>
+          <button class="table-action-button delete" type="button" data-action="delete" data-id="${transaction.id}" ${isDeleted ? "disabled" : ""}>Sil</button>
         </div>
       </td>
     `;
@@ -549,8 +563,9 @@ function renderTransactions() {
 
 function renderSummary() {
   const currentDay = getCurrentDay();
-  const sales = currentDay.transactions.filter((item) => item.type === "sale");
-  const expenses = currentDay.transactions.filter((item) => item.type === "expense");
+  const activeTransactions = currentDay.transactions.filter((item) => !item.deletedAt);
+  const sales = activeTransactions.filter((item) => item.type === "sale");
+  const expenses = activeTransactions.filter((item) => item.type === "expense");
 
   const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
   const cash = sales
@@ -590,7 +605,7 @@ function renderGrandTotalCash() {
 }
 
 function renderBreakdown() {
-  const sales = getCurrentDay().transactions.filter((item) => item.type === "sale");
+  const sales = getCurrentDay().transactions.filter((item) => item.type === "sale" && !item.deletedAt);
   salesBreakdown.innerHTML = "";
 
   if (sales.length === 0) {
@@ -698,7 +713,12 @@ function deleteTransaction(transactionId) {
   }
 
   const currentDay = getCurrentDay();
-  currentDay.transactions = currentDay.transactions.filter((item) => item.id !== transactionId);
+  const transaction = currentDay.transactions.find((item) => item.id === transactionId);
+  if (!transaction) {
+    return;
+  }
+
+  transaction.deletedAt = new Date().toISOString();
   void persist();
   render();
 }
@@ -727,8 +747,9 @@ function exportDateRangeReport(startDate, endDate) {
 }
 
 function buildReportLines(title, transactions, includeDateColumn = false) {
-  const sales = transactions.filter((item) => item.type === "sale");
-  const expenses = transactions.filter((item) => item.type === "expense");
+  const activeTransactions = transactions.filter((item) => !item.deletedAt);
+  const sales = activeTransactions.filter((item) => item.type === "sale");
+  const expenses = activeTransactions.filter((item) => item.type === "expense");
 
   const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
   const cash = sales
@@ -766,7 +787,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
       const baseRow = [
         formatTime(item.createdAt),
         item.type === "sale" ? "Satis" : "Gider",
-        item.title,
+        item.deletedAt ? `${item.title} (Silindi)` : item.title,
         getPaymentLabel(item.paymentType),
         toExcelNumber(item.amount),
       ];
@@ -869,8 +890,9 @@ function createDefaultReportSettings() {
 }
 
 function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
-  const sales = transactions.filter((item) => item.type === "sale");
-  const expenses = transactions.filter((item) => item.type === "expense");
+  const activeTransactions = transactions.filter((item) => !item.deletedAt);
+  const sales = activeTransactions.filter((item) => item.type === "sale");
+  const expenses = activeTransactions.filter((item) => item.type === "expense");
 
   const totalRevenue = sales.reduce((sum, item) => sum + item.amount, 0);
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
@@ -1322,7 +1344,12 @@ function normalizeDays(days) {
     Object.entries(days).map(([dayKey, dayValue]) => [
       dayKey,
       {
-        transactions: Array.isArray(dayValue?.transactions) ? dayValue.transactions : [],
+        transactions: Array.isArray(dayValue?.transactions)
+          ? dayValue.transactions.map((transaction) => ({
+              ...transaction,
+              deletedAt: transaction?.deletedAt || null,
+            }))
+          : [],
         isClosed: Boolean(dayValue?.isClosed),
       },
     ])
@@ -1361,10 +1388,10 @@ function formatTime(isoDate) {
 
 function calculateNetForTransactions(transactions) {
   const salesTotal = transactions
-    .filter((item) => item.type === "sale")
+    .filter((item) => item.type === "sale" && !item.deletedAt)
     .reduce((sum, item) => sum + item.amount, 0);
   const expenseTotal = transactions
-    .filter((item) => item.type === "expense")
+    .filter((item) => item.type === "expense" && !item.deletedAt)
     .reduce((sum, item) => sum + item.amount, 0);
   return salesTotal - expenseTotal;
 }

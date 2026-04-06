@@ -769,6 +769,15 @@ tbody tr:hover {
   background: rgba(255, 236, 214, 0.6);
 }
 
+tbody tr.deleted-row {
+  opacity: 0.58;
+  background: rgba(120, 94, 84, 0.06);
+}
+
+tbody tr.deleted-row td {
+  text-decoration: line-through;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -793,6 +802,16 @@ tbody tr:hover {
 .badge.payment {
   background: rgba(20, 20, 20, 0.08);
   color: #3e2a22;
+}
+
+.badge.deleted {
+  background: rgba(163, 40, 40, 0.12);
+  color: var(--danger);
+}
+
+.badge.active {
+  background: rgba(255, 190, 85, 0.18);
+  color: #875700;
 }
 
 .table-actions {
