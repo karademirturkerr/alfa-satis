@@ -47,7 +47,7 @@ const expensePaymentTypeInput = document.querySelector("#expensePaymentType");
 const expenseMethodTypeInput = document.querySelector("#expenseMethodType");
 const transactionTableBody = document.querySelector("#transactionTableBody");
 const salesBreakdown = document.querySelector("#salesBreakdown");
-  const totalRevenue = document.querySelector("#totalRevenue");
+const totalRevenue = document.querySelector("#totalRevenue");
 const dailyCostVault = document.querySelector("#dailyCostVault");
 const dailySavingsVault = document.querySelector("#dailySavingsVault");
 const dailyProfitVault = document.querySelector("#dailyProfitVault");
@@ -953,6 +953,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
     ["Ozet"],
     ["Total Ciro", toExcelNumber(vaults.revenue)],
     ["Gider", toExcelNumber(vaults.expenseTotal)],
+    ["Brut Kar", toExcelNumber(vaults.remainingAfterExpenses)],
     ["Gunluk Maliyet Kasa", toExcelNumber(vaults.costVault)],
     ["Gunluk Birikim Kasa", toExcelNumber(vaults.savingsVault)],
     ["Gunluk Total Kasa", toExcelNumber(vaults.profitVault)],
@@ -1069,6 +1070,7 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
     "",
     `Total Ciro: ${formatCurrency(vaults.revenue)}`,
     `Toplam Gider: ${formatCurrency(vaults.expenseTotal)}`,
+    `Brut Kar: ${formatCurrency(vaults.remainingAfterExpenses)}`,
     `Gunluk Maliyet Kasa: ${formatCurrency(vaults.costVault)}`,
     `Gunluk Birikim Kasa: ${formatCurrency(vaults.savingsVault)}`,
     `Gunluk Total Kasa: ${formatCurrency(vaults.profitVault)}`,
