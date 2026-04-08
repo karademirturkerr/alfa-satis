@@ -3,21 +3,24 @@ const AUTH_STORAGE_KEY = "restaurant-auth-session-v1";
 const appConfig = window.APP_CONFIG || {};
 const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
 const DEFAULT_WHATSAPP_PHONE_NORMALIZED = "905338245595";
-const INITIAL_GRAND_TOTAL_CASH = 2540;
+const INITIAL_TOTAL_COST_VAULT = 688;
+const INITIAL_TOTAL_SAVINGS_VAULT = 0;
+const INITIAL_TOTAL_PROFIT_VAULT = 2540;
+const DAILY_SAVINGS_VAULT_AMOUNT = 500;
 
 const defaultProducts = [
-  { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300 },
-  { id: crypto.randomUUID(), name: "Hamburger", price: 250 },
-  { id: crypto.randomUUID(), name: "Tavukburger Menu", price: 250 },
-  { id: crypto.randomUUID(), name: "Tavukburger", price: 200 },
-  { id: crypto.randomUUID(), name: "Karisik Tost", price: 110 },
-  { id: crypto.randomUUID(), name: "Kasarli Tost", price: 100 },
-  { id: crypto.randomUUID(), name: "Patso", price: 100 },
-  { id: crypto.randomUUID(), name: "Sosisli Patso", price: 110 },
-  { id: crypto.randomUUID(), name: "Doner", price: 100 },
-  { id: crypto.randomUUID(), name: "Makarna", price: 200 },
-  { id: crypto.randomUUID(), name: "Icecekler", price: 60 },
-  { id: crypto.randomUUID(), name: "Ayran", price: 20 },
+  { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300, costPrice: 130 },
+  { id: crypto.randomUUID(), name: "Hamburger", price: 250, costPrice: 95 },
+  { id: crypto.randomUUID(), name: "Tavukburger Menu", price: 250, costPrice: 100 },
+  { id: crypto.randomUUID(), name: "Tavukburger", price: 200, costPrice: 65 },
+  { id: crypto.randomUUID(), name: "Karisik Tost", price: 110, costPrice: 45 },
+  { id: crypto.randomUUID(), name: "Kasarli Tost", price: 100, costPrice: 40 },
+  { id: crypto.randomUUID(), name: "Patso", price: 100, costPrice: 35 },
+  { id: crypto.randomUUID(), name: "Sosisli Patso", price: 110, costPrice: 40 },
+  { id: crypto.randomUUID(), name: "Doner", price: 100, costPrice: 60 },
+  { id: crypto.randomUUID(), name: "Makarna", price: 200, costPrice: 50 },
+  { id: crypto.randomUUID(), name: "Icecekler", price: 60, costPrice: 18 },
+  { id: crypto.randomUUID(), name: "Ayran", price: 20, costPrice: 8 },
 ];
 
 let state = createDefaultState();
@@ -36,6 +39,7 @@ const productList = document.querySelector("#productList");
 const productForm = document.querySelector("#productForm");
 const productNameInput = document.querySelector("#productName");
 const productPriceInput = document.querySelector("#productPrice");
+const productCostPriceInput = document.querySelector("#productCostPrice");
 const expenseForm = document.querySelector("#expenseForm");
 const expenseTitleInput = document.querySelector("#expenseTitle");
 const expenseAmountInput = document.querySelector("#expenseAmount");
@@ -43,11 +47,17 @@ const expensePaymentTypeInput = document.querySelector("#expensePaymentType");
 const transactionTableBody = document.querySelector("#transactionTableBody");
 const salesBreakdown = document.querySelector("#salesBreakdown");
 const totalRevenue = document.querySelector("#totalRevenue");
-const totalBank = document.querySelector("#totalBank");
-const totalCash = document.querySelector("#totalCash");
+const dailyCostVault = document.querySelector("#dailyCostVault");
+const dailySavingsVault = document.querySelector("#dailySavingsVault");
+const dailyProfitVault = document.querySelector("#dailyProfitVault");
 const totalExpense = document.querySelector("#totalExpense");
+const totalCostVault = document.querySelector("#totalCostVault");
+const totalSavingsVault = document.querySelector("#totalSavingsVault");
+const totalProfitVault = document.querySelector("#totalProfitVault");
 const netAmount = document.querySelector("#netAmount");
-const grandTotalCash = document.querySelector("#grandTotalCash");
+const bottomCostVault = document.querySelector("#bottomCostVault");
+const bottomSavingsVault = document.querySelector("#bottomSavingsVault");
+const bottomProfitVault = document.querySelector("#bottomProfitVault");
 const recordCount = document.querySelector("#recordCount");
 const dayStatusBadge = document.querySelector("#dayStatusBadge");
 const summaryStatusText = document.querySelector("#summaryStatusText");
@@ -60,6 +70,7 @@ const openProductFormButton = document.querySelector("#openProductFormButton");
 const closeDayButton = document.querySelector("#closeDayButton");
 const exportExcelButton = document.querySelector("#exportExcelButton");
 const exportRangeButton = document.querySelector("#exportRangeButton");
+const exportTemplateButton = document.querySelector("#exportTemplateButton");
 const editDialog = document.querySelector("#editDialog");
 const editTransactionForm = document.querySelector("#editTransactionForm");
 const editTransactionId = document.querySelector("#editTransactionId");
@@ -176,8 +187,9 @@ function bindEvents() {
 
     const name = productNameInput.value.trim();
     const price = Number(productPriceInput.value);
+    const costPrice = Number(productCostPriceInput.value);
 
-    if (!name || Number.isNaN(price) || price <= 0) {
+    if (!name || Number.isNaN(price) || price <= 0 || Number.isNaN(costPrice) || costPrice < 0) {
       return;
     }
 
@@ -185,6 +197,7 @@ function bindEvents() {
       id: crypto.randomUUID(),
       name,
       price,
+      costPrice,
     });
 
     void persist();
@@ -247,7 +260,10 @@ function bindEvents() {
       return;
     }
 
-    state.meta.grandTotalCash += calculateNetForTransactions(currentDay.transactions);
+    const buckets = calculateDailyVaults(currentDay.transactions);
+    state.meta.totalCostVault += buckets.costVault;
+    state.meta.totalSavingsVault += buckets.savingsVault;
+    state.meta.totalProfitVault += buckets.profitVault;
     currentDay.isClosed = true;
 
     await persist();
@@ -260,6 +276,10 @@ function bindEvents() {
     rangeStartDate.value = selectedDate;
     rangeEndDate.value = selectedDate;
     exportRangeDialog.showModal();
+  });
+
+  exportTemplateButton.addEventListener("click", () => {
+    exportTemplateCompatibleReport();
   });
 
   editTransactionForm.addEventListener("submit", (event) => {
@@ -492,7 +512,11 @@ function renderProducts() {
     meta.className = "product-meta";
     meta.innerHTML = `
       <strong>${escapeHtml(product.name)}</strong>
-      <span>${formatCurrency(product.price)}</span>
+      <span>${
+        currentRole === "admin"
+          ? `${formatCurrency(product.price)} satis • ${formatCurrency(product.costPrice || 0)} maliyet`
+          : `${formatCurrency(product.price)}`
+      }</span>
     `;
 
     const button = document.createElement("button");
@@ -520,7 +544,7 @@ function renderTransactions() {
   if (transactions.length === 0) {
     const emptyRow = document.createElement("tr");
     emptyRow.innerHTML = `
-      <td colspan="6">Bu gun icin henuz kayit yok.</td>
+      <td colspan="7">Bu gun icin henuz kayit yok.</td>
     `;
     transactionTableBody.append(emptyRow);
     return;
@@ -563,45 +587,34 @@ function renderTransactions() {
 
 function renderSummary() {
   const currentDay = getCurrentDay();
-  const activeTransactions = currentDay.transactions.filter((item) => !item.deletedAt);
-  const sales = activeTransactions.filter((item) => item.type === "sale");
-  const expenses = activeTransactions.filter((item) => item.type === "expense");
+  const vaults = calculateDailyVaults(currentDay.transactions);
 
-  const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
-  const cash = sales
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bank = sales
-    .filter((item) => item.paymentType === "pos")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const cashExpenses = expenses
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bankExpenses = expenses
-    .filter((item) => item.paymentType === "bank")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const expense = expenses.reduce((sum, item) => sum + item.amount, 0);
-
-  totalRevenue.textContent = formatCurrency(revenue);
-  totalCash.textContent = formatCurrency(cash - cashExpenses);
-  totalBank.textContent = formatCurrency(bank - bankExpenses);
-  totalExpense.textContent = formatCurrency(expense);
-  netAmount.textContent = formatCurrency(revenue - expense);
+  totalRevenue.textContent = formatCurrency(vaults.revenue);
+  dailyCostVault.textContent = formatCurrency(vaults.costVault);
+  dailySavingsVault.textContent = formatCurrency(vaults.savingsVault);
+  dailyProfitVault.textContent = formatCurrency(vaults.profitVault);
+  totalExpense.textContent = formatCurrency(vaults.expenseTotal);
+  totalCostVault.textContent = formatCurrency(state.meta.totalCostVault);
+  totalSavingsVault.textContent = formatCurrency(state.meta.totalSavingsVault);
+  totalProfitVault.textContent = formatCurrency(state.meta.totalProfitVault);
+  netAmount.textContent = formatCurrency(vaults.remainingAfterExpenses);
   closeDayButton.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gunu Kapat";
   closeDayButton.disabled = Boolean(currentDay.isClosed);
   dayStatusBadge.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gun Acik";
   dayStatusBadge.classList.toggle("closed", Boolean(currentDay.isClosed));
   summaryStatusText.textContent = currentDay.isClosed
-    ? "Bu gun kapatildi ve toplam kasaya eklendi."
+    ? "Bu gun kapatildi ve dagitim toplam kasalara eklendi."
     : "Bu gun henuz kapatilmadi.";
   operationStatusText.textContent = currentDay.isClosed
-    ? "Vardiya kapatildi. Net kasa toplam kasaya islendi."
+    ? "Vardiya kapatildi. Maliyet, birikim ve total kasalara islenmis durumda."
     : "Vardiya acik. Gun sonu kontrolunden sonra kapatabilirsin.";
-  operationNetPreview.textContent = formatCurrency(revenue - expense);
+  operationNetPreview.textContent = formatCurrency(vaults.profitVault);
 }
 
 function renderGrandTotalCash() {
-  grandTotalCash.textContent = formatCurrency(state.meta.grandTotalCash);
+  bottomCostVault.textContent = formatCurrency(state.meta.totalCostVault);
+  bottomSavingsVault.textContent = formatCurrency(state.meta.totalSavingsVault);
+  bottomProfitVault.textContent = formatCurrency(state.meta.totalProfitVault);
 }
 
 function renderBreakdown() {
@@ -746,26 +759,81 @@ function exportDateRangeReport(startDate, endDate) {
   downloadCsv(`kasa-raporu-${startDate}-${endDate}.csv`, lines);
 }
 
+function exportTemplateCompatibleReport() {
+  const selectedDate = getSelectedDate();
+  const currentDay = getCurrentDay();
+  const activeTransactions = currentDay.transactions.filter((item) => !item.deletedAt);
+  const sales = activeTransactions.filter((item) => item.type === "sale");
+  const expenses = activeTransactions.filter((item) => item.type === "expense");
+
+  const groupedSales = sales.reduce((accumulator, item) => {
+    const key = item.productId || item.title;
+    const product = state.products.find((productItem) => productItem.id === item.productId);
+
+    if (!accumulator[key]) {
+      accumulator[key] = {
+        productName: item.title,
+        count: 0,
+        unitPrice: Number(item.amount),
+        unitCost: Number(product?.costPrice || 0),
+      };
+    }
+
+    accumulator[key].count += 1;
+    return accumulator;
+  }, {});
+
+  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const rows = Object.values(groupedSales)
+    .sort((a, b) => a.productName.localeCompare(b.productName, "tr"))
+    .map((item, index) => {
+      const unitProfit = item.unitPrice - item.unitCost;
+      const salesTotal = item.count * item.unitPrice;
+      const costTotal = item.count * item.unitCost;
+      const profitTotal = item.count * unitProfit;
+
+      return [
+        item.productName,
+        item.count,
+        toExcelNumber(item.unitPrice),
+        toExcelNumber(item.unitCost),
+        toExcelNumber(unitProfit),
+        toExcelNumber(salesTotal),
+        toExcelNumber(costTotal),
+        toExcelNumber(profitTotal),
+        index === 0 ? toExcelNumber(totalExpense) : "",
+      ];
+    });
+
+  if (rows.length === 0) {
+    rows.push(["", "", "", "", "", "", "", "", toExcelNumber(totalExpense)]);
+  }
+
+  const lines = [
+    ["Tarih", selectedDate],
+    [],
+    [
+      "Urun Adi",
+      "Satilan Adet",
+      "Birim Fiyat",
+      "Birim Maliyet",
+      "Birim Kar",
+      "Satis Tutari",
+      "Toplam Maliyet",
+      "Toplam Kar",
+      "Gider",
+    ],
+    ...rows,
+  ];
+
+  downloadCsv(`gunluk-satis-sablon-${selectedDate}.csv`, lines);
+}
+
 function buildReportLines(title, transactions, includeDateColumn = false) {
   const activeTransactions = transactions.filter((item) => !item.deletedAt);
   const sales = activeTransactions.filter((item) => item.type === "sale");
   const expenses = activeTransactions.filter((item) => item.type === "expense");
-
-  const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
-  const cash = sales
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bank = sales
-    .filter((item) => item.paymentType === "pos")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const cashExpenses = expenses
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bankExpenses = expenses
-    .filter((item) => item.paymentType === "bank")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const net = revenue - expenseTotal;
+  const vaults = calculateDailyVaults(transactions);
 
   const groupedSales = sales.reduce((accumulator, item) => {
     if (!accumulator[item.title]) {
@@ -799,12 +867,14 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
     ["Rapor", title],
     [],
     ["Ozet"],
-    ["Total Ciro", toExcelNumber(revenue)],
-    ["Banka Kasasi", toExcelNumber(bank - bankExpenses)],
-    ["Nakit Kasa", toExcelNumber(cash - cashExpenses)],
-    ["Gider", toExcelNumber(expenseTotal)],
-    ["Net Kasa", toExcelNumber(net)],
-    ["Toplam Kasa", toExcelNumber(state.meta.grandTotalCash)],
+    ["Total Ciro", toExcelNumber(vaults.revenue)],
+    ["Gider", toExcelNumber(vaults.expenseTotal)],
+    ["Gunluk Maliyet Kasa", toExcelNumber(vaults.costVault)],
+    ["Gunluk Birikim Kasa", toExcelNumber(vaults.savingsVault)],
+    ["Gunluk Total Kasa", toExcelNumber(vaults.profitVault)],
+    ["Toplam Maliyet Kasa", toExcelNumber(state.meta.totalCostVault)],
+    ["Toplam Birikim Kasa", toExcelNumber(state.meta.totalSavingsVault)],
+    ["Toplam Total Kasa", toExcelNumber(state.meta.totalProfitVault)],
     [],
     ["Satilan Urunler"],
     ["Urun", "Adet", "Toplam"],
@@ -892,32 +962,19 @@ function createDefaultReportSettings() {
 function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
   const activeTransactions = transactions.filter((item) => !item.deletedAt);
   const sales = activeTransactions.filter((item) => item.type === "sale");
-  const expenses = activeTransactions.filter((item) => item.type === "expense");
-
-  const totalRevenue = sales.reduce((sum, item) => sum + item.amount, 0);
-  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const cashSales = sales
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bankSales = sales
-    .filter((item) => item.paymentType === "pos")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const cashExpenses = expenses
-    .filter((item) => item.paymentType === "cash")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const bankExpenses = expenses
-    .filter((item) => item.paymentType === "bank")
-    .reduce((sum, item) => sum + item.amount, 0);
+  const vaults = calculateDailyVaults(transactions);
 
   const lines = [
     `Gun Sonu Raporu - ${reportDate}`,
     "",
-    `Total Ciro: ${formatCurrency(totalRevenue)}`,
-    `Nakit Kasa: ${formatCurrency(cashSales - cashExpenses)}`,
-    `Banka Kasasi: ${formatCurrency(bankSales - bankExpenses)}`,
-    `Toplam Gider: ${formatCurrency(totalExpense)}`,
-    `Net Kasa: ${formatCurrency(totalRevenue - totalExpense)}`,
-    `Toplam Kasa: ${formatCurrency(state.meta.grandTotalCash)}`,
+    `Total Ciro: ${formatCurrency(vaults.revenue)}`,
+    `Toplam Gider: ${formatCurrency(vaults.expenseTotal)}`,
+    `Gunluk Maliyet Kasa: ${formatCurrency(vaults.costVault)}`,
+    `Gunluk Birikim Kasa: ${formatCurrency(vaults.savingsVault)}`,
+    `Gunluk Total Kasa: ${formatCurrency(vaults.profitVault)}`,
+    `Toplam Maliyet Kasa: ${formatCurrency(state.meta.totalCostVault)}`,
+    `Toplam Birikim Kasa: ${formatCurrency(state.meta.totalSavingsVault)}`,
+    `Toplam Total Kasa: ${formatCurrency(state.meta.totalProfitVault)}`,
   ];
 
   if (reportType === "daily_with_top_products") {
@@ -1318,7 +1375,9 @@ function createDefaultState() {
     products: defaultProducts.map((product) => ({ ...product })),
     days: {},
     meta: {
-      grandTotalCash: INITIAL_GRAND_TOTAL_CASH,
+      totalCostVault: INITIAL_TOTAL_COST_VAULT,
+      totalSavingsVault: INITIAL_TOTAL_SAVINGS_VAULT,
+      totalProfitVault: INITIAL_TOTAL_PROFIT_VAULT,
     },
   };
 }
@@ -1327,14 +1386,27 @@ function normalizeState(input) {
   return {
     products:
       Array.isArray(input?.products) && input.products.length > 0
-        ? input.products
+        ? input.products.map((product) => ({
+            ...product,
+            costPrice: typeof product?.costPrice === "number" ? product.costPrice : 0,
+          }))
         : defaultProducts.map((product) => ({ ...product })),
     days: normalizeDays(input?.days || {}),
     meta: {
-      grandTotalCash:
-        typeof input?.meta?.grandTotalCash === "number"
-          ? input.meta.grandTotalCash
-          : INITIAL_GRAND_TOTAL_CASH,
+      totalCostVault:
+        typeof input?.meta?.totalCostVault === "number"
+          ? input.meta.totalCostVault
+          : INITIAL_TOTAL_COST_VAULT,
+      totalSavingsVault:
+        typeof input?.meta?.totalSavingsVault === "number"
+          ? input.meta.totalSavingsVault
+          : INITIAL_TOTAL_SAVINGS_VAULT,
+      totalProfitVault:
+        typeof input?.meta?.totalProfitVault === "number"
+          ? input.meta.totalProfitVault
+          : typeof input?.meta?.grandTotalCash === "number"
+            ? input.meta.grandTotalCash
+            : INITIAL_TOTAL_PROFIT_VAULT,
     },
   };
 }
@@ -1387,13 +1459,31 @@ function formatTime(isoDate) {
 }
 
 function calculateNetForTransactions(transactions) {
-  const salesTotal = transactions
-    .filter((item) => item.type === "sale" && !item.deletedAt)
-    .reduce((sum, item) => sum + item.amount, 0);
-  const expenseTotal = transactions
-    .filter((item) => item.type === "expense" && !item.deletedAt)
-    .reduce((sum, item) => sum + item.amount, 0);
-  return salesTotal - expenseTotal;
+  return calculateDailyVaults(transactions).profitVault;
+}
+
+function calculateDailyVaults(transactions) {
+  const activeTransactions = transactions.filter((item) => !item.deletedAt);
+  const sales = activeTransactions.filter((item) => item.type === "sale");
+  const expenses = activeTransactions.filter((item) => item.type === "expense");
+  const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
+  const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const remainingAfterExpenses = revenue - expenseTotal;
+  const costVault = sales.reduce((sum, item) => {
+    const product = state.products.find((productItem) => productItem.id === item.productId);
+    return sum + Number(product?.costPrice || 0);
+  }, 0);
+  const savingsVault = DAILY_SAVINGS_VAULT_AMOUNT;
+  const profitVault = remainingAfterExpenses - costVault - savingsVault;
+
+  return {
+    revenue,
+    expenseTotal,
+    remainingAfterExpenses,
+    costVault,
+    savingsVault,
+    profitVault,
+  };
 }
 
 function escapeHtml(text) {

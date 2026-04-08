@@ -98,24 +98,40 @@
         </div>
         <div class="summary-grid">
           <article class="metric-card">
-            <span>Total Ciro</span>
-            <strong id="totalRevenue">0 TL</strong>
+            <span>Gunluk Maliyet Kasa</span>
+            <strong id="dailyCostVault">0 TL</strong>
           </article>
           <article class="metric-card">
-            <span>Banka Kasasi</span>
-            <strong id="totalBank">0 TL</strong>
+            <span>Gunluk Birikim Kasa</span>
+            <strong id="dailySavingsVault">0 TL</strong>
           </article>
           <article class="metric-card">
-            <span>Nakit Kasa</span>
-            <strong id="totalCash">0 TL</strong>
+            <span>Gunluk Total Kasa</span>
+            <strong id="dailyProfitVault">0 TL</strong>
           </article>
           <article class="metric-card expense">
             <span>Gider</span>
             <strong id="totalExpense">0 TL</strong>
           </article>
+          <article class="metric-card">
+            <span>Toplam Maliyet Kasa</span>
+            <strong id="totalCostVault">0 TL</strong>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Birikim Kasa</span>
+            <strong id="totalSavingsVault">0 TL</strong>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Total Kasa</span>
+            <strong id="totalProfitVault">0 TL</strong>
+          </article>
+          <article class="metric-card">
+            <span>Total Ciro</span>
+            <strong id="totalRevenue">0 TL</strong>
+          </article>
         </div>
         <div class="net-box">
-          <span>Net Kasa</span>
+          <span>Gunluk Dagitim Sonrasi Kalan</span>
           <strong id="netAmount">0 TL</strong>
           <span id="summaryStatusText" class="summary-status-text">Bu gun henuz kapatilmadi.</span>
         </div>
@@ -152,6 +168,10 @@
           <label>
             Fiyat (TL)
             <input id="productPrice" name="productPrice" type="number" min="0" step="0.01" placeholder="0.00" required>
+          </label>
+          <label>
+            Maliyet (TL)
+            <input id="productCostPrice" name="productCostPrice" type="number" min="0" step="0.01" placeholder="0.00" required>
           </label>
           <button class="primary-button" type="submit">Kaydet</button>
         </form>
@@ -221,6 +241,7 @@
           <div class="export-actions">
             <button id="exportExcelButton" class="secondary-button" type="button" data-role-visible="admin">Gunlugu Aktar</button>
             <button id="exportRangeButton" class="ghost-button" type="button" data-role-visible="admin">Tarih Araligi Aktar</button>
+            <button id="exportTemplateButton" class="ghost-button" type="button" data-role-visible="admin">Excel Sablonuna Aktar</button>
           </div>
         </div>
         <div class="table-wrap">
@@ -250,11 +271,21 @@
 
       <section class="panel wide" data-role-visible="admin">
         <div class="panel-title-row">
-          <h2>Genel Kasa Toplami</h2>
+          <h2>Kasa Toplamlari</h2>
         </div>
-        <div class="net-box total-cash-box">
-          <span>Toplam Kasa</span>
-          <strong id="grandTotalCash">0 TL</strong>
+        <div class="summary-grid">
+          <article class="metric-card">
+            <span>Toplam Maliyet Kasa</span>
+            <strong id="bottomCostVault">0 TL</strong>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Birikim Kasa</span>
+            <strong id="bottomSavingsVault">0 TL</strong>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Total Kasa</span>
+            <strong id="bottomProfitVault">0 TL</strong>
+          </article>
         </div>
       </section>
     </main>
