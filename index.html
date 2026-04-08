@@ -100,14 +100,17 @@
           <article class="metric-card">
             <span>Gunluk Maliyet Kasa</span>
             <strong id="dailyCostVault">0 TL</strong>
+            <small id="dailyCostExpenseBreakdown" class="metric-subtext">Gider: 0 TL</small>
           </article>
           <article class="metric-card">
             <span>Gunluk Birikim Kasa</span>
             <strong id="dailySavingsVault">0 TL</strong>
+            <small id="dailySavingsExpenseBreakdown" class="metric-subtext">Gider: 0 TL</small>
           </article>
           <article class="metric-card">
             <span>Gunluk Total Kasa</span>
             <strong id="dailyProfitVault">0 TL</strong>
+            <small id="dailyProfitExpenseBreakdown" class="metric-subtext">Gider: 0 TL</small>
           </article>
           <article class="metric-card expense">
             <span>Gider</span>
@@ -194,8 +197,16 @@
           <label>
             Hangi Kasadan Cikti?
             <select id="expensePaymentType" name="expensePaymentType" required>
-              <option value="cash">Nakit Kasasi</option>
-              <option value="bank">Banka Kasasi</option>
+              <option value="cost">Maliyet Kasasi</option>
+              <option value="savings">Birikim Kasasi</option>
+              <option value="profit">Total Kasasi</option>
+            </select>
+          </label>
+          <label>
+            Odeme Sekli
+            <select id="expenseMethodType" name="expenseMethodType" required>
+              <option value="cash">Nakit</option>
+              <option value="card">Kart</option>
             </select>
           </label>
           <button class="primary-button" type="submit">Gider Kaydet</button>
@@ -324,7 +335,16 @@
         <select id="editPaymentType">
           <option value="cash">Nakit</option>
           <option value="pos">POS</option>
-          <option value="bank">Banka Kasasi</option>
+          <option value="cost">Maliyet Kasasi</option>
+          <option value="savings">Birikim Kasasi</option>
+          <option value="profit">Total Kasasi</option>
+        </select>
+      </label>
+      <label id="editMethodField">
+        Odeme Sekli
+        <select id="editMethodType">
+          <option value="cash">Nakit</option>
+          <option value="card">Kart</option>
         </select>
       </label>
       <div class="dialog-actions">

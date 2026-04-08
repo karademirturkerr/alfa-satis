@@ -44,12 +44,16 @@ const expenseForm = document.querySelector("#expenseForm");
 const expenseTitleInput = document.querySelector("#expenseTitle");
 const expenseAmountInput = document.querySelector("#expenseAmount");
 const expensePaymentTypeInput = document.querySelector("#expensePaymentType");
+const expenseMethodTypeInput = document.querySelector("#expenseMethodType");
 const transactionTableBody = document.querySelector("#transactionTableBody");
 const salesBreakdown = document.querySelector("#salesBreakdown");
-const totalRevenue = document.querySelector("#totalRevenue");
+  const totalRevenue = document.querySelector("#totalRevenue");
 const dailyCostVault = document.querySelector("#dailyCostVault");
 const dailySavingsVault = document.querySelector("#dailySavingsVault");
 const dailyProfitVault = document.querySelector("#dailyProfitVault");
+const dailyCostExpenseBreakdown = document.querySelector("#dailyCostExpenseBreakdown");
+const dailySavingsExpenseBreakdown = document.querySelector("#dailySavingsExpenseBreakdown");
+const dailyProfitExpenseBreakdown = document.querySelector("#dailyProfitExpenseBreakdown");
 const totalExpense = document.querySelector("#totalExpense");
 const totalCostVault = document.querySelector("#totalCostVault");
 const totalSavingsVault = document.querySelector("#totalSavingsVault");
@@ -80,6 +84,8 @@ const editTitleInput = document.querySelector("#editTitleInput");
 const editAmountInput = document.querySelector("#editAmountInput");
 const editPaymentField = document.querySelector("#editPaymentField");
 const editPaymentType = document.querySelector("#editPaymentType");
+const editMethodField = document.querySelector("#editMethodField");
+const editMethodType = document.querySelector("#editMethodType");
 const closeEditDialogButton = document.querySelector("#closeEditDialogButton");
 const exportRangeDialog = document.querySelector("#exportRangeDialog");
 const exportRangeForm = document.querySelector("#exportRangeForm");
@@ -224,6 +230,7 @@ function bindEvents() {
       title,
       amount,
       paymentType: expensePaymentTypeInput.value,
+      methodType: expenseMethodTypeInput.value,
       createdAt: new Date().toISOString(),
     });
 
@@ -296,10 +303,12 @@ function bindEvents() {
       transaction.title = editTitleInput.value.trim();
       transaction.amount = Number(editAmountInput.value);
       transaction.paymentType = editPaymentType.value;
+      transaction.methodType = transaction.paymentType === "cash" ? "cash" : "card";
     } else {
       transaction.title = editTitleInput.value.trim();
       transaction.amount = Number(editAmountInput.value);
-      transaction.paymentType = editPaymentType.value;
+      transaction.paymentType = normalizeExpenseVaultType(editPaymentType.value);
+      transaction.methodType = editMethodType.value;
     }
 
     if (!transaction.title || Number.isNaN(transaction.amount) || transaction.amount <= 0) {
@@ -553,7 +562,10 @@ function renderTransactions() {
   transactions.forEach((transaction) => {
     const row = document.createElement("tr");
     const isSale = transaction.type === "sale";
-    const paymentLabel = getPaymentLabel(transaction.paymentType);
+    const paymentLabel =
+      transaction.type === "expense"
+        ? `${getPaymentLabel(transaction.paymentType)} • ${getMethodLabel(transaction.methodType)}`
+        : getPaymentLabel(transaction.paymentType);
     const isDeleted = Boolean(transaction.deletedAt);
 
     row.classList.toggle("deleted-row", isDeleted);
@@ -593,6 +605,9 @@ function renderSummary() {
   dailyCostVault.textContent = formatCurrency(vaults.costVault);
   dailySavingsVault.textContent = formatCurrency(vaults.savingsVault);
   dailyProfitVault.textContent = formatCurrency(vaults.profitVault);
+  dailyCostExpenseBreakdown.textContent = `Gider: ${formatCurrency(vaults.costExpenses)}`;
+  dailySavingsExpenseBreakdown.textContent = `Gider: ${formatCurrency(vaults.savingsExpenses)}`;
+  dailyProfitExpenseBreakdown.textContent = `Gider: ${formatCurrency(vaults.profitExpenses)}`;
   totalExpense.textContent = formatCurrency(vaults.expenseTotal);
   totalCostVault.textContent = formatCurrency(state.meta.totalCostVault);
   totalSavingsVault.textContent = formatCurrency(state.meta.totalSavingsVault);
@@ -695,12 +710,17 @@ function openEditDialog(transactionId) {
   if (transaction.type === "sale") {
     editProductField.classList.remove("hidden");
     editPaymentField.classList.remove("hidden");
+    editMethodField.classList.add("hidden");
+    renderEditPaymentOptions("sale");
     editPaymentType.value = transaction.paymentType;
     renderEditProductOptions(transaction.productId);
   } else {
     editProductField.classList.add("hidden");
     editPaymentField.classList.remove("hidden");
-    editPaymentType.value = transaction.paymentType === "bank" ? "bank" : "cash";
+    editMethodField.classList.remove("hidden");
+    renderEditPaymentOptions("expense");
+    editPaymentType.value = normalizeExpenseVaultType(transaction.paymentType);
+    editMethodType.value = transaction.methodType || "cash";
     editProductSelect.innerHTML = "";
   }
 
@@ -856,7 +876,9 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
         formatTime(item.createdAt),
         item.type === "sale" ? "Satis" : "Gider",
         item.deletedAt ? `${item.title} (Silindi)` : item.title,
-        getPaymentLabel(item.paymentType),
+        item.type === "expense"
+          ? `${getPaymentLabel(item.paymentType)} • ${getMethodLabel(item.methodType)}`
+          : getPaymentLabel(item.paymentType),
         toExcelNumber(item.amount),
       ];
 
@@ -921,11 +943,27 @@ function getPaymentLabel(paymentType) {
     return "POS";
   }
 
+  if (paymentType === "cost") {
+    return "Maliyet Kasasi";
+  }
+
+  if (paymentType === "savings") {
+    return "Birikim Kasasi";
+  }
+
+  if (paymentType === "profit") {
+    return "Total Kasasi";
+  }
+
   if (paymentType === "bank") {
-    return "Banka Kasasi";
+    return "Birikim Kasasi";
   }
 
   return "-";
+}
+
+function getMethodLabel(methodType) {
+  return methodType === "card" ? "Kart" : "Nakit";
 }
 
 function focusSection(sectionId) {
@@ -1419,6 +1457,16 @@ function normalizeDays(days) {
         transactions: Array.isArray(dayValue?.transactions)
           ? dayValue.transactions.map((transaction) => ({
               ...transaction,
+              paymentType:
+                transaction?.type === "expense"
+                  ? normalizeExpenseVaultType(transaction?.paymentType)
+                  : transaction?.paymentType,
+              methodType:
+                transaction?.type === "expense"
+                  ? transaction?.methodType || "cash"
+                  : transaction?.paymentType === "cash"
+                    ? "cash"
+                    : "card",
               deletedAt: transaction?.deletedAt || null,
             }))
           : [],
@@ -1468,22 +1516,70 @@ function calculateDailyVaults(transactions) {
   const expenses = activeTransactions.filter((item) => item.type === "expense");
   const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const costExpenses = expenses
+    .filter((item) => normalizeExpenseVaultType(item.paymentType) === "cost")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const savingsExpenses = expenses
+    .filter((item) => normalizeExpenseVaultType(item.paymentType) === "savings")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const profitExpenses = expenses
+    .filter((item) => normalizeExpenseVaultType(item.paymentType) === "profit")
+    .reduce((sum, item) => sum + item.amount, 0);
   const remainingAfterExpenses = revenue - expenseTotal;
   const costVault = sales.reduce((sum, item) => {
     const product = state.products.find((productItem) => productItem.id === item.productId);
     return sum + Number(product?.costPrice || 0);
-  }, 0);
+  }, 0) - costExpenses;
   const savingsVault = DAILY_SAVINGS_VAULT_AMOUNT;
-  const profitVault = remainingAfterExpenses - costVault - savingsVault;
+  const adjustedSavingsVault = savingsVault - savingsExpenses;
+  const profitVault =
+    revenue -
+    sales.reduce((sum, item) => {
+      const product = state.products.find((productItem) => productItem.id === item.productId);
+      return sum + Number(product?.costPrice || 0);
+    }, 0) -
+    DAILY_SAVINGS_VAULT_AMOUNT -
+    profitExpenses;
 
   return {
     revenue,
     expenseTotal,
     remainingAfterExpenses,
     costVault,
-    savingsVault,
+    savingsVault: adjustedSavingsVault,
     profitVault,
+    costExpenses,
+    savingsExpenses,
+    profitExpenses,
   };
+}
+
+function normalizeExpenseVaultType(paymentType) {
+  if (paymentType === "profit") {
+    return "profit";
+  }
+
+  if (paymentType === "savings" || paymentType === "bank") {
+    return "savings";
+  }
+
+  return "cost";
+}
+
+function renderEditPaymentOptions(mode) {
+  if (mode === "sale") {
+    editPaymentType.innerHTML = `
+      <option value="cash">Nakit</option>
+      <option value="pos">POS</option>
+    `;
+    return;
+  }
+
+  editPaymentType.innerHTML = `
+    <option value="cost">Maliyet Kasasi</option>
+    <option value="savings">Birikim Kasasi</option>
+    <option value="profit">Total Kasasi</option>
+  `;
 }
 
 function escapeHtml(text) {
