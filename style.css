@@ -827,6 +827,12 @@ tbody tr.deleted-row td {
   gap: 8px;
 }
 
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .table-action-button {
   padding: 8px 12px;
   border-radius: 12px;

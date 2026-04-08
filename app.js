@@ -87,6 +87,13 @@ const editPaymentType = document.querySelector("#editPaymentType");
 const editMethodField = document.querySelector("#editMethodField");
 const editMethodType = document.querySelector("#editMethodType");
 const closeEditDialogButton = document.querySelector("#closeEditDialogButton");
+const editProductDialog = document.querySelector("#editProductDialog");
+const editProductForm = document.querySelector("#editProductForm");
+const editProductId = document.querySelector("#editProductId");
+const editProductNameInput = document.querySelector("#editProductNameInput");
+const editProductPriceInput = document.querySelector("#editProductPriceInput");
+const editProductCostInput = document.querySelector("#editProductCostInput");
+const closeEditProductDialogButton = document.querySelector("#closeEditProductDialogButton");
 const exportRangeDialog = document.querySelector("#exportRangeDialog");
 const exportRangeForm = document.querySelector("#exportRangeForm");
 const rangeStartDate = document.querySelector("#rangeStartDate");
@@ -334,6 +341,35 @@ function bindEvents() {
     editDialog.close();
   });
 
+  editProductForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const product = state.products.find((item) => item.id === editProductId.value);
+    if (!product) {
+      return;
+    }
+
+    const nextName = editProductNameInput.value.trim();
+    const nextPrice = Number(editProductPriceInput.value);
+    const nextCost = Number(editProductCostInput.value);
+
+    if (!nextName || Number.isNaN(nextPrice) || nextPrice <= 0 || Number.isNaN(nextCost) || nextCost < 0) {
+      return;
+    }
+
+    product.name = nextName;
+    product.price = nextPrice;
+    product.costPrice = nextCost;
+
+    void persist();
+    editProductDialog.close();
+    render();
+  });
+
+  closeEditProductDialogButton.addEventListener("click", () => {
+    editProductDialog.close();
+  });
+
   exportRangeForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -535,7 +571,20 @@ function renderProducts() {
     button.setAttribute("aria-label", `${product.name} satisini ekle`);
     button.addEventListener("click", () => openPaymentDialog(product));
 
-    item.append(meta, button);
+    const actions = document.createElement("div");
+    actions.className = "product-actions";
+
+    if (currentRole === "admin") {
+      const editButton = document.createElement("button");
+      editButton.className = "table-action-button edit";
+      editButton.type = "button";
+      editButton.textContent = "Duzenle";
+      editButton.addEventListener("click", () => openEditProductDialog(product.id));
+      actions.append(editButton);
+    }
+
+    actions.append(button);
+    item.append(meta, actions);
     productList.append(item);
   });
 }
@@ -737,6 +786,19 @@ function renderEditProductOptions(selectedProductId) {
     option.selected = product.id === selectedProductId;
     editProductSelect.append(option);
   });
+}
+
+function openEditProductDialog(productId) {
+  const product = state.products.find((item) => item.id === productId);
+  if (!product) {
+    return;
+  }
+
+  editProductId.value = product.id;
+  editProductNameInput.value = product.name;
+  editProductPriceInput.value = String(product.price);
+  editProductCostInput.value = String(product.costPrice || 0);
+  editProductDialog.showModal();
 }
 
 function deleteTransaction(transactionId) {
