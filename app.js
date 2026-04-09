@@ -277,7 +277,7 @@ function bindEvents() {
     const buckets = calculateDailyVaults(currentDay.transactions);
     state.meta.totalCostVault += buckets.costVault;
     state.meta.totalSavingsVault += buckets.savingsVault;
-    state.meta.totalProfitVault += buckets.profitVault;
+    state.meta.totalProfitVault += buckets.netProfit;
     currentDay.isClosed = true;
 
     await persist();
@@ -661,7 +661,7 @@ function renderSummary() {
   totalCostVault.textContent = formatCurrency(state.meta.totalCostVault);
   totalSavingsVault.textContent = formatCurrency(state.meta.totalSavingsVault);
   totalProfitVault.textContent = formatCurrency(state.meta.totalProfitVault);
-  netAmount.textContent = formatCurrency(vaults.remainingAfterExpenses);
+  netAmount.textContent = formatCurrency(vaults.grossProfit);
   closeDayButton.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gunu Kapat";
   closeDayButton.disabled = Boolean(currentDay.isClosed);
   dayStatusBadge.textContent = currentDay.isClosed ? "Gun Kapatildi" : "Gun Acik";
@@ -953,7 +953,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
     ["Ozet"],
     ["Total Ciro", toExcelNumber(vaults.revenue)],
     ["Gider", toExcelNumber(vaults.expenseTotal)],
-    ["Brut Kar", toExcelNumber(vaults.remainingAfterExpenses)],
+    ["Brut Kar", toExcelNumber(vaults.grossProfit)],
     ["Gunluk Maliyet Kasa", toExcelNumber(vaults.costVault)],
     ["Gunluk Birikim Kasa", toExcelNumber(vaults.savingsVault)],
     ["Gunluk Total Kasa", toExcelNumber(vaults.profitVault)],
@@ -1070,7 +1070,7 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
     "",
     `Total Ciro: ${formatCurrency(vaults.revenue)}`,
     `Toplam Gider: ${formatCurrency(vaults.expenseTotal)}`,
-    `Brut Kar: ${formatCurrency(vaults.remainingAfterExpenses)}`,
+    `Brut Kar: ${formatCurrency(vaults.grossProfit)}`,
     `Gunluk Maliyet Kasa: ${formatCurrency(vaults.costVault)}`,
     `Gunluk Birikim Kasa: ${formatCurrency(vaults.savingsVault)}`,
     `Gunluk Total Kasa: ${formatCurrency(vaults.profitVault)}`,
@@ -1571,7 +1571,7 @@ function formatTime(isoDate) {
 }
 
 function calculateNetForTransactions(transactions) {
-  return calculateDailyVaults(transactions).profitVault;
+  return calculateDailyVaults(transactions).netProfit;
 }
 
 function calculateDailyVaults(transactions) {
@@ -1580,6 +1580,10 @@ function calculateDailyVaults(transactions) {
   const expenses = activeTransactions.filter((item) => item.type === "expense");
   const revenue = sales.reduce((sum, item) => sum + item.amount, 0);
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const totalProductCost = sales.reduce((sum, item) => {
+    const product = state.products.find((productItem) => productItem.id === item.productId);
+    return sum + Number(product?.costPrice || 0);
+  }, 0);
   const costExpenses = expenses
     .filter((item) => normalizeExpenseVaultType(item.paymentType) === "cost")
     .reduce((sum, item) => sum + item.amount, 0);
@@ -1589,29 +1593,21 @@ function calculateDailyVaults(transactions) {
   const profitExpenses = expenses
     .filter((item) => normalizeExpenseVaultType(item.paymentType) === "profit")
     .reduce((sum, item) => sum + item.amount, 0);
-  const remainingAfterExpenses = revenue - expenseTotal;
-  const costVault = sales.reduce((sum, item) => {
-    const product = state.products.find((productItem) => productItem.id === item.productId);
-    return sum + Number(product?.costPrice || 0);
-  }, 0) - costExpenses;
+  const grossProfit = revenue - expenseTotal;
+  const costVault = totalProductCost - costExpenses;
   const savingsVault = DAILY_SAVINGS_VAULT_AMOUNT;
   const adjustedSavingsVault = savingsVault - savingsExpenses;
-  const profitVault =
-    revenue -
-    sales.reduce((sum, item) => {
-      const product = state.products.find((productItem) => productItem.id === item.productId);
-      return sum + Number(product?.costPrice || 0);
-    }, 0) -
-    DAILY_SAVINGS_VAULT_AMOUNT -
-    profitExpenses;
+  const netProfit = revenue - totalProductCost - DAILY_SAVINGS_VAULT_AMOUNT - profitExpenses;
+  const profitVault = netProfit;
 
   return {
     revenue,
     expenseTotal,
-    remainingAfterExpenses,
+    grossProfit,
     costVault,
     savingsVault: adjustedSavingsVault,
     profitVault,
+    netProfit,
     costExpenses,
     savingsExpenses,
     profitExpenses,
