@@ -5,7 +5,7 @@ const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
 const DEFAULT_WHATSAPP_PHONE_NORMALIZED = "905338245595";
 const INITIAL_TOTAL_COST_VAULT = 688;
 const INITIAL_TOTAL_SAVINGS_VAULT = 1000;
-const INITIAL_TOTAL_PROFIT_VAULT = 2540;
+const INITIAL_TOTAL_PROFIT_VAULT = 5892;
 const DAILY_SAVINGS_VAULT_AMOUNT = 500;
 
 const defaultProducts = [
@@ -1503,12 +1503,7 @@ function normalizeState(input) {
         typeof input?.meta?.totalSavingsVault === "number"
           ? input.meta.totalSavingsVault
           : INITIAL_TOTAL_SAVINGS_VAULT,
-      totalProfitVault:
-        typeof input?.meta?.totalProfitVault === "number"
-          ? input.meta.totalProfitVault
-          : typeof input?.meta?.grandTotalCash === "number"
-            ? input.meta.grandTotalCash
-            : INITIAL_TOTAL_PROFIT_VAULT,
+      totalProfitVault: INITIAL_TOTAL_PROFIT_VAULT,
     },
   };
 }
