@@ -113,6 +113,10 @@ body::before {
   background: rgba(255, 255, 255, 0.92);
 }
 
+#loginStatus {
+  color: var(--hero-text);
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
