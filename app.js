@@ -1611,9 +1611,10 @@ function calculateDailyVaults(transactions) {
     .reduce((sum, item) => sum + item.amount, 0);
   const grossProfit = revenue - expenseTotal;
   const costVault = totalProductCost - costExpenses;
-  const savingsVault = DAILY_SAVINGS_VAULT_AMOUNT;
+  const distributableAfterCost = Math.max(0, revenue - totalProductCost);
+  const savingsVault = Math.min(DAILY_SAVINGS_VAULT_AMOUNT, distributableAfterCost);
   const adjustedSavingsVault = savingsVault - savingsExpenses;
-  const netProfit = revenue - totalProductCost - DAILY_SAVINGS_VAULT_AMOUNT - profitExpenses;
+  const netProfit = distributableAfterCost - savingsVault - profitExpenses;
   const profitVault = netProfit;
 
   return {
