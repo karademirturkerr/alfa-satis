@@ -8,6 +8,8 @@ const INITIAL_TOTAL_SAVINGS_VAULT = 1000;
 const INITIAL_TOTAL_PROFIT_VAULT = 5892;
 const DAILY_SAVINGS_VAULT_AMOUNT = 500;
 const PROFIT_VAULT_BASELINE_VERSION = "2026-04-10-total-profit-5892";
+const SAVINGS_VAULT_OVERRIDE_VALUE = 3715;
+const SAVINGS_VAULT_OVERRIDE_VERSION = "2026-05-22-total-savings-3715";
 
 const defaultProducts = [
   { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300, costPrice: 130 },
@@ -517,7 +519,7 @@ async function hydrateAuthenticatedApp(session) {
     currentProfile = await loadCurrentProfile(session);
     currentRole = currentProfile?.role || "staff";
     state = await loadState();
-    if (applyProfitVaultBaselineMigration()) {
+    if (applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
@@ -1485,6 +1487,7 @@ function createDefaultState() {
       totalSavingsVault: INITIAL_TOTAL_SAVINGS_VAULT,
       totalProfitVault: INITIAL_TOTAL_PROFIT_VAULT,
       profitVaultBaselineVersion: PROFIT_VAULT_BASELINE_VERSION,
+      savingsVaultOverrideVersion: SAVINGS_VAULT_OVERRIDE_VERSION,
     },
   };
 }
@@ -1515,18 +1518,27 @@ function normalizeState(input) {
             ? input.meta.grandTotalCash
             : INITIAL_TOTAL_PROFIT_VAULT,
       profitVaultBaselineVersion: input?.meta?.profitVaultBaselineVersion || null,
+      savingsVaultOverrideVersion: input?.meta?.savingsVaultOverrideVersion || null,
     },
   };
 }
 
-function applyProfitVaultBaselineMigration() {
-  if (state.meta.profitVaultBaselineVersion === PROFIT_VAULT_BASELINE_VERSION) {
-    return false;
+function applyVaultMigrations() {
+  let hasChanges = false;
+
+  if (state.meta.profitVaultBaselineVersion !== PROFIT_VAULT_BASELINE_VERSION) {
+    state.meta.totalProfitVault = INITIAL_TOTAL_PROFIT_VAULT;
+    state.meta.profitVaultBaselineVersion = PROFIT_VAULT_BASELINE_VERSION;
+    hasChanges = true;
   }
 
-  state.meta.totalProfitVault = INITIAL_TOTAL_PROFIT_VAULT;
-  state.meta.profitVaultBaselineVersion = PROFIT_VAULT_BASELINE_VERSION;
-  return true;
+  if (state.meta.savingsVaultOverrideVersion !== SAVINGS_VAULT_OVERRIDE_VERSION) {
+    state.meta.totalSavingsVault = SAVINGS_VAULT_OVERRIDE_VALUE;
+    state.meta.savingsVaultOverrideVersion = SAVINGS_VAULT_OVERRIDE_VERSION;
+    hasChanges = true;
+  }
+
+  return hasChanges;
 }
 
 function normalizeDays(days) {
