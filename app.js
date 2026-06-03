@@ -8,8 +8,12 @@ const INITIAL_TOTAL_SAVINGS_VAULT = 1000;
 const INITIAL_TOTAL_PROFIT_VAULT = 5892;
 const DAILY_SAVINGS_VAULT_AMOUNT = 500;
 const PROFIT_VAULT_BASELINE_VERSION = "2026-04-10-total-profit-5892";
-const SAVINGS_VAULT_OVERRIDE_VALUE = 3715;
-const SAVINGS_VAULT_OVERRIDE_VERSION = "2026-05-22-total-savings-3715";
+const TOTAL_VAULT_OVERRIDE = {
+  cost: 492,
+  savings: 0,
+  profit: 870,
+};
+const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
 
 const defaultProducts = [
   { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300, costPrice: 130 },
@@ -1487,7 +1491,7 @@ function createDefaultState() {
       totalSavingsVault: INITIAL_TOTAL_SAVINGS_VAULT,
       totalProfitVault: INITIAL_TOTAL_PROFIT_VAULT,
       profitVaultBaselineVersion: PROFIT_VAULT_BASELINE_VERSION,
-      savingsVaultOverrideVersion: SAVINGS_VAULT_OVERRIDE_VERSION,
+      totalVaultOverrideVersion: TOTAL_VAULT_OVERRIDE_VERSION,
     },
   };
 }
@@ -1518,7 +1522,7 @@ function normalizeState(input) {
             ? input.meta.grandTotalCash
             : INITIAL_TOTAL_PROFIT_VAULT,
       profitVaultBaselineVersion: input?.meta?.profitVaultBaselineVersion || null,
-      savingsVaultOverrideVersion: input?.meta?.savingsVaultOverrideVersion || null,
+      totalVaultOverrideVersion: input?.meta?.totalVaultOverrideVersion || null,
     },
   };
 }
@@ -1532,9 +1536,11 @@ function applyVaultMigrations() {
     hasChanges = true;
   }
 
-  if (state.meta.savingsVaultOverrideVersion !== SAVINGS_VAULT_OVERRIDE_VERSION) {
-    state.meta.totalSavingsVault = SAVINGS_VAULT_OVERRIDE_VALUE;
-    state.meta.savingsVaultOverrideVersion = SAVINGS_VAULT_OVERRIDE_VERSION;
+  if (state.meta.totalVaultOverrideVersion !== TOTAL_VAULT_OVERRIDE_VERSION) {
+    state.meta.totalCostVault = TOTAL_VAULT_OVERRIDE.cost;
+    state.meta.totalSavingsVault = TOTAL_VAULT_OVERRIDE.savings;
+    state.meta.totalProfitVault = TOTAL_VAULT_OVERRIDE.profit;
+    state.meta.totalVaultOverrideVersion = TOTAL_VAULT_OVERRIDE_VERSION;
     hasChanges = true;
   }
 
