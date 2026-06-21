@@ -607,7 +607,7 @@ async function switchBranch(nextBranch) {
 
   try {
     state = await loadState();
-    if (getCurrentBranchConfig().enableLegacyMigrations && applyVaultMigrations()) {
+    if (applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
@@ -627,7 +627,7 @@ async function hydrateAuthenticatedApp(session) {
     currentProfile = await loadCurrentProfile(session);
     currentRole = currentProfile?.role || "staff";
     state = await loadState();
-    if (getCurrentBranchConfig().enableLegacyMigrations && applyVaultMigrations()) {
+    if (applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
