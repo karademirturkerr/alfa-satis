@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -318,6 +318,10 @@
     <form method="dialog" class="dialog-card">
       <h3>Odeme Turu Sec</h3>
       <p id="dialogProductInfo"></p>
+      <label>
+        Adet
+        <input id="dialogQuantityInput" type="number" min="1" step="1" value="1" required>
+      </label>
       <div class="dialog-actions">
         <button id="cashSelectButton" class="primary-button" value="cash" type="submit">Nakit</button>
         <button id="posSelectButton" class="secondary-button" value="pos" type="submit">POS</button>

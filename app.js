@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = "restaurant-cash-register-v1";
+const STORAGE_KEY = "restaurant-cash-register-v1";
 const AUTH_STORAGE_KEY = "restaurant-auth-session-v1";
 const appConfig = window.APP_CONFIG || {};
 const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
@@ -110,6 +110,7 @@ const operationNetPreview = document.querySelector("#operationNetPreview");
 const transactionsSectionTitle = document.querySelector("#transactionsSectionTitle");
 const paymentDialog = document.querySelector("#paymentDialog");
 const dialogProductInfo = document.querySelector("#dialogProductInfo");
+const dialogQuantityInput = document.querySelector("#dialogQuantityInput");
 const openProductFormButton = document.querySelector("#openProductFormButton");
 const closeDayButton = document.querySelector("#closeDayButton");
 const exportExcelButton = document.querySelector("#exportExcelButton");
@@ -160,6 +161,7 @@ const roleAwareElements = document.querySelectorAll("[data-role-visible]");
 let reportSettings = createDefaultReportSettings();
 
 let pendingProductId = null;
+let pendingSaleQuantity = 1;
 
 initialize();
 
@@ -318,13 +320,18 @@ function bindEvents() {
 
   paymentDialog.addEventListener("close", () => {
     const paymentType = paymentDialog.returnValue;
+    const quantity = Math.max(1, Number(dialogQuantityInput.value) || 1);
     if (!pendingProductId || !["cash", "pos"].includes(paymentType)) {
       pendingProductId = null;
+      pendingSaleQuantity = 1;
+      dialogQuantityInput.value = "1";
       return;
     }
 
-    addSale(pendingProductId, paymentType);
+    addSale(pendingProductId, paymentType, quantity);
     pendingProductId = null;
+    pendingSaleQuantity = 1;
+    dialogQuantityInput.value = "1";
   });
 
   exportExcelButton.addEventListener("click", () => {
@@ -723,7 +730,7 @@ function renderTransactions() {
     row.innerHTML = `
       <td>${formatTime(transaction.createdAt)}</td>
       <td><span class="badge ${isSale ? "sale" : "expense"}">${isSale ? "Satis" : "Gider"}</span></td>
-      <td>${escapeHtml(transaction.title)}</td>
+      <td>${escapeHtml(transaction.title)}${transaction.type === "sale" && (Number(transaction.quantity) || 1) > 1 ? ` x${Math.max(1, Number(transaction.quantity) || 1)}` : ""}</td>
       <td><span class="badge payment">${paymentLabel}</span></td>
       <td>${formatCurrency(transaction.amount)}</td>
       <td><span class="badge ${isDeleted ? "deleted" : "active"}">${isDeleted ? "Silindi" : "Aktif"}</span></td>
@@ -800,7 +807,8 @@ function renderBreakdown() {
       };
     }
 
-    accumulator[item.productId].count += 1;
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    accumulator[item.productId].count += quantity;
     accumulator[item.productId].total += item.amount;
     return accumulator;
   }, {});
@@ -823,22 +831,28 @@ function renderBreakdown() {
 
 function openPaymentDialog(product) {
   pendingProductId = product.id;
+  pendingSaleQuantity = 1;
   dialogProductInfo.textContent = `${product.name} - ${formatCurrency(product.price)}`;
+  dialogQuantityInput.value = "1";
   paymentDialog.showModal();
 }
 
-function addSale(productId, paymentType) {
+function addSale(productId, paymentType, quantity = 1) {
   const product = state.products.find((item) => item.id === productId);
   if (!product) {
     return;
   }
+
+  const safeQuantity = Math.max(1, Math.floor(Number(quantity) || 1));
 
   ensureDay(getSelectedDate()).transactions.unshift({
     id: crypto.randomUUID(),
     type: "sale",
     title: product.name,
     productId: product.id,
-    amount: Number(product.price),
+    quantity: safeQuantity,
+    amount: Number(product.price) * safeQuantity,
+    unitPrice: Number(product.price),
     paymentType,
     createdAt: new Date().toISOString(),
   });
@@ -1038,7 +1052,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
       const baseRow = [
         formatTime(item.createdAt),
         item.type === "sale" ? "Satis" : "Gider",
-        item.deletedAt ? `${item.title} (Silindi)` : item.title,
+        item.deletedAt ? `${item.title}${item.type === "sale" && (Number(item.quantity) || 1) > 1 ? ` x${Math.max(1, Number(item.quantity) || 1)}` : ""} (Silindi)` : `${item.title}${item.type === "sale" && (Number(item.quantity) || 1) > 1 ? ` x${Math.max(1, Number(item.quantity) || 1)}` : ""}`,
         item.type === "expense"
           ? `${getPaymentLabel(item.paymentType)} â€¢ ${getMethodLabel(item.methodType)}`
           : getPaymentLabel(item.paymentType),
@@ -1187,7 +1201,7 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
           accumulator[item.title] = { title: item.title, count: 0 };
         }
 
-        accumulator[item.title].count += 1;
+        accumulator[item.title].count += Math.max(1, Number(item.quantity) || 1);
         return accumulator;
       }, {})
     )
@@ -1698,6 +1712,8 @@ function normalizeDays(days) {
                     ? "cash"
                     : "card",
               deletedAt: transaction?.deletedAt || null,
+              quantity: transaction?.type === "sale" ? Math.max(1, Number(transaction?.quantity) || 1) : undefined,
+              unitPrice: transaction?.type === "sale" ? (typeof transaction?.unitPrice === "number" ? transaction.unitPrice : (Number(transaction?.amount) / Math.max(1, Number(transaction?.quantity) || 1))) : undefined,
             }))
           : [],
         isClosed: Boolean(dayValue?.isClosed),
@@ -1748,7 +1764,8 @@ function calculateDailyVaults(transactions) {
   const expenseTotal = expenses.reduce((sum, item) => sum + item.amount, 0);
   const totalProductCost = sales.reduce((sum, item) => {
     const product = state.products.find((productItem) => productItem.id === item.productId);
-    return sum + Number(product?.costPrice || 0);
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    return sum + Number(product?.costPrice || 0) * quantity;
   }, 0);
   const costExpenses = expenses
     .filter((item) => normalizeExpenseVaultType(item.paymentType) === "cost")

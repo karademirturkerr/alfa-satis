@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f13b2a;
   --bg-deep: #cf2617;
   --bg-night: #86180f;
@@ -1028,3 +1028,7 @@ tbody tr.deleted-row td {
   }
 }
 
+
+.payment-dialog input[type="number"] {
+  width: 100%;
+}
