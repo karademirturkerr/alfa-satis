@@ -15,6 +15,12 @@ const TOTAL_VAULT_OVERRIDE = {
   profit: 870,
 };
 const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
+const ALFA2_TOTAL_VAULT_OVERRIDE = {
+  cost: 1247,
+  savings: 1000,
+  profit: 753,
+};
+const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-21-alfa2-total-vaults-1247-1000-753";
 const BRANCH_STORAGE_KEY = "restaurant-active-branch-v1";
 const BRANCHES = {
   ALFA1: {
@@ -1633,7 +1639,7 @@ function createDefaultState() {
       totalSavingsVault: branchConfig.initialTotals.savings,
       totalProfitVault: branchConfig.initialTotals.profit,
       profitVaultBaselineVersion: PROFIT_VAULT_BASELINE_VERSION,
-      totalVaultOverrideVersion: TOTAL_VAULT_OVERRIDE_VERSION,
+      totalVaultOverrideVersion: branchConfig.id === "ALFA2" ? ALFA2_TOTAL_VAULT_OVERRIDE_VERSION : TOTAL_VAULT_OVERRIDE_VERSION,
     },
   };
 }
@@ -1670,11 +1676,24 @@ function normalizeState(input) {
 }
 
 function applyVaultMigrations() {
-  if (!getCurrentBranchConfig().enableLegacyMigrations) {
-    return false;
+  let hasChanges = false;
+  const branchConfig = getCurrentBranchConfig();
+
+  if (branchConfig.id === "ALFA2") {
+    if (state.meta.totalVaultOverrideVersion !== ALFA2_TOTAL_VAULT_OVERRIDE_VERSION) {
+      state.meta.totalCostVault = ALFA2_TOTAL_VAULT_OVERRIDE.cost;
+      state.meta.totalSavingsVault = ALFA2_TOTAL_VAULT_OVERRIDE.savings;
+      state.meta.totalProfitVault = ALFA2_TOTAL_VAULT_OVERRIDE.profit;
+      state.meta.totalVaultOverrideVersion = ALFA2_TOTAL_VAULT_OVERRIDE_VERSION;
+      hasChanges = true;
+    }
+
+    return hasChanges;
   }
 
-  let hasChanges = false;
+  if (!branchConfig.enableLegacyMigrations) {
+    return false;
+  }
 
   if (state.meta.profitVaultBaselineVersion !== PROFIT_VAULT_BASELINE_VERSION) {
     state.meta.totalProfitVault = INITIAL_TOTAL_PROFIT_VAULT;
