@@ -1,4 +1,4 @@
-const STORAGE_KEY = "restaurant-cash-register-v1";
+﻿const STORAGE_KEY = "restaurant-cash-register-v1";
 const AUTH_STORAGE_KEY = "restaurant-auth-session-v1";
 const appConfig = window.APP_CONFIG || {};
 const DEFAULT_WHATSAPP_PHONE = "90 533 824 55 95";
@@ -7,6 +7,7 @@ const INITIAL_TOTAL_COST_VAULT = 688;
 const INITIAL_TOTAL_SAVINGS_VAULT = 1000;
 const INITIAL_TOTAL_PROFIT_VAULT = 5892;
 const DAILY_SAVINGS_VAULT_AMOUNT = 500;
+const DAILY_SAVINGS_VAULT_AMOUNT_ALFA2 = 1000;
 const PROFIT_VAULT_BASELINE_VERSION = "2026-04-10-total-profit-5892";
 const TOTAL_VAULT_OVERRIDE = {
   cost: 492,
@@ -14,6 +15,37 @@ const TOTAL_VAULT_OVERRIDE = {
   profit: 870,
 };
 const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
+const BRANCH_STORAGE_KEY = "restaurant-active-branch-v1";
+const BRANCHES = {
+  ALFA1: {
+    id: "ALFA1",
+    appId: appConfig.appId,
+    storageKey: `${STORAGE_KEY}-alfa1`,
+    reportSettingsAppId: appConfig.appId,
+    dailySavingsTarget: DAILY_SAVINGS_VAULT_AMOUNT,
+    initialTotals: {
+      cost: INITIAL_TOTAL_COST_VAULT,
+      savings: INITIAL_TOTAL_SAVINGS_VAULT,
+      profit: INITIAL_TOTAL_PROFIT_VAULT,
+    },
+    startsEmptyProducts: false,
+    enableLegacyMigrations: true,
+  },
+  ALFA2: {
+    id: "ALFA2",
+    appId: `${appConfig.appId}-alfa2`,
+    storageKey: `${STORAGE_KEY}-alfa2`,
+    reportSettingsAppId: `${appConfig.appId}-alfa2`,
+    dailySavingsTarget: DAILY_SAVINGS_VAULT_AMOUNT_ALFA2,
+    initialTotals: {
+      cost: 0,
+      savings: 0,
+      profit: 0,
+    },
+    startsEmptyProducts: true,
+    enableLegacyMigrations: false,
+  },
+};
 
 const defaultProducts = [
   { id: crypto.randomUUID(), name: "Hamburger Menu", price: 300, costPrice: 130 },
@@ -30,6 +62,7 @@ const defaultProducts = [
   { id: crypto.randomUUID(), name: "Ayran", price: 20, costPrice: 8 },
 ];
 
+let currentBranch = restoreCurrentBranch();
 let state = createDefaultState();
 let currentSession = null;
 let currentProfile = null;
@@ -117,6 +150,10 @@ const sendTestWhatsAppButton = document.querySelector("#sendTestWhatsAppButton")
 const openWhatsAppShareButton = document.querySelector("#openWhatsAppShareButton");
 const currentUserName = document.querySelector("#currentUserName");
 const currentUserRole = document.querySelector("#currentUserRole");
+const currentBranchLabel = document.querySelector("#currentBranchLabel");
+const branchMenuButton = document.querySelector("#branchMenuButton");
+const branchMenu = document.querySelector("#branchMenu");
+const branchOptions = document.querySelectorAll(".branch-option");
 const logoutButton = document.querySelector("#logoutButton");
 const roleAwareElements = document.querySelectorAll("[data-role-visible]");
 
@@ -185,6 +222,32 @@ function bindEvents() {
     currentRole = "guest";
     setAuthenticatedView(false);
     setLoginStatus("Cikis yapildi.");
+  });
+
+  branchMenuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isHidden = branchMenu.classList.contains("hidden");
+    branchMenu.classList.toggle("hidden", !isHidden);
+    branchMenuButton.setAttribute("aria-expanded", String(isHidden));
+  });
+
+  branchOptions.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const nextBranch = button.dataset.branch;
+      if (!nextBranch || nextBranch === currentBranch) {
+        closeBranchMenu();
+        return;
+      }
+
+      closeBranchMenu();
+      await switchBranch(nextBranch);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!branchMenu.contains(event.target) && !branchMenuButton.contains(event.target)) {
+      closeBranchMenu();
+    }
   });
 
   selectedDateInput.addEventListener("change", render);
@@ -513,6 +576,34 @@ function renderAuthMeta() {
   currentUserName.textContent =
     currentProfile?.full_name || currentProfile?.username || currentProfile?.email || "Kullanici";
   currentUserRole.textContent = currentRole === "admin" ? "Admin" : currentRole === "staff" ? "Personel" : "Misafir";
+  currentBranchLabel.textContent = currentBranch;
+  branchOptions.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.branch === currentBranch);
+  });
+}
+
+function closeBranchMenu() {
+  branchMenu.classList.add("hidden");
+  branchMenuButton.setAttribute("aria-expanded", "false");
+}
+
+async function switchBranch(nextBranch) {
+  currentBranch = BRANCHES[nextBranch] ? nextBranch : "ALFA1";
+  persistCurrentBranch();
+  setUiDisabled(true);
+
+  try {
+    state = await loadState();
+    if (getCurrentBranchConfig().enableLegacyMigrations && applyVaultMigrations()) {
+      await persist();
+    }
+    reportSettings = await loadReportSettings();
+    renderAuthMeta();
+    renderReportSettings();
+    render();
+  } finally {
+    setUiDisabled(false);
+  }
 }
 
 async function hydrateAuthenticatedApp(session) {
@@ -523,7 +614,7 @@ async function hydrateAuthenticatedApp(session) {
     currentProfile = await loadCurrentProfile(session);
     currentRole = currentProfile?.role || "staff";
     state = await loadState();
-    if (applyVaultMigrations()) {
+    if (getCurrentBranchConfig().enableLegacyMigrations && applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
@@ -569,7 +660,7 @@ function renderProducts() {
       <strong>${escapeHtml(product.name)}</strong>
       <span>${
         currentRole === "admin"
-          ? `${formatCurrency(product.price)} satis • ${formatCurrency(product.costPrice || 0)} maliyet`
+          ? `${formatCurrency(product.price)} satis â€¢ ${formatCurrency(product.costPrice || 0)} maliyet`
           : `${formatCurrency(product.price)}`
       }</span>
     `;
@@ -623,7 +714,7 @@ function renderTransactions() {
     const isSale = transaction.type === "sale";
     const paymentLabel =
       transaction.type === "expense"
-        ? `${getPaymentLabel(transaction.paymentType)} • ${getMethodLabel(transaction.methodType)}`
+        ? `${getPaymentLabel(transaction.paymentType)} â€¢ ${getMethodLabel(transaction.methodType)}`
         : getPaymentLabel(transaction.paymentType);
     const isDeleted = Boolean(transaction.deletedAt);
 
@@ -949,7 +1040,7 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
         item.type === "sale" ? "Satis" : "Gider",
         item.deletedAt ? `${item.title} (Silindi)` : item.title,
         item.type === "expense"
-          ? `${getPaymentLabel(item.paymentType)} • ${getMethodLabel(item.methodType)}`
+          ? `${getPaymentLabel(item.paymentType)} â€¢ ${getMethodLabel(item.methodType)}`
           : getPaymentLabel(item.paymentType),
         toExcelNumber(item.amount),
       ];
@@ -1218,7 +1309,7 @@ async function loadReportSettings() {
   }
 
   const response = await fetch(
-    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}&select=phone_number,send_time,is_enabled,report_type`,
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(getCurrentReportSettingsAppId())}&select=phone_number,send_time,is_enabled,report_type`,
     {
       method: "GET",
       headers: createSupabaseHeaders(),
@@ -1247,7 +1338,7 @@ async function saveReportSettings(nextSettings) {
   }
 
   const payload = {
-    app_id: appConfig.appId,
+    app_id: getCurrentReportSettingsAppId(),
     phone_number: nextSettings.phone_number,
     send_time: nextSettings.send_time,
     is_enabled: nextSettings.is_enabled,
@@ -1255,7 +1346,7 @@ async function saveReportSettings(nextSettings) {
   };
 
   const response = await fetch(
-    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}`,
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.reportSettingsTable}?app_id=eq.${encodeURIComponent(getCurrentReportSettingsAppId())}`,
     {
       method: "PATCH",
       headers: {
@@ -1315,7 +1406,7 @@ async function invokeWhatsAppFunction(payload) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        app_id: appConfig.appId,
+        app_id: getCurrentAppId(),
         ...payload,
       }),
     }
@@ -1371,7 +1462,7 @@ async function persist() {
 }
 
 function loadLocalState() {
-  const storedValue = localStorage.getItem(STORAGE_KEY);
+  const storedValue = localStorage.getItem(getCurrentStorageKey());
 
   if (!storedValue) {
     return createDefaultState();
@@ -1387,12 +1478,12 @@ function loadLocalState() {
 }
 
 function persistLocalState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(getCurrentStorageKey(), JSON.stringify(state));
 }
 
 async function loadRemoteState() {
   const response = await fetch(
-    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}&select=data`,
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(getCurrentAppId())}&select=data`,
     {
       method: "GET",
       headers: createSupabaseHeaders(),
@@ -1426,7 +1517,7 @@ async function createRemoteState(initialState) {
     },
     body: JSON.stringify([
       {
-        app_id: appConfig.appId,
+        app_id: getCurrentAppId(),
         data: initialState,
       },
     ]),
@@ -1439,7 +1530,7 @@ async function createRemoteState(initialState) {
 
 async function persistRemoteState() {
   const response = await fetch(
-    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(appConfig.appId)}`,
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(getCurrentAppId())}`,
     {
       method: "PATCH",
       headers: {
@@ -1482,14 +1573,51 @@ function isRemoteStorageEnabled() {
   );
 }
 
+function getCurrentBranchConfig() {
+  return BRANCHES[currentBranch] || BRANCHES.ALFA1;
+}
+
+function getCurrentAppId() {
+  return getCurrentBranchConfig().appId;
+}
+
+function getCurrentReportSettingsAppId() {
+  return getCurrentBranchConfig().reportSettingsAppId;
+}
+
+function getCurrentStorageKey() {
+  return getCurrentBranchConfig().storageKey;
+}
+
+function getDailySavingsTarget() {
+  return getCurrentBranchConfig().dailySavingsTarget;
+}
+
+function restoreCurrentBranch() {
+  const storedBranch = localStorage.getItem(BRANCH_STORAGE_KEY);
+  return BRANCHES[storedBranch] ? storedBranch : "ALFA1";
+}
+
+function persistCurrentBranch() {
+  localStorage.setItem(BRANCH_STORAGE_KEY, currentBranch);
+}
+
+function getInitialProducts() {
+  return getCurrentBranchConfig().startsEmptyProducts
+    ? []
+    : defaultProducts.map((product) => ({ ...product }));
+}
+
 function createDefaultState() {
+  const branchConfig = getCurrentBranchConfig();
+
   return {
-    products: defaultProducts.map((product) => ({ ...product })),
+    products: getInitialProducts(),
     days: {},
     meta: {
-      totalCostVault: INITIAL_TOTAL_COST_VAULT,
-      totalSavingsVault: INITIAL_TOTAL_SAVINGS_VAULT,
-      totalProfitVault: INITIAL_TOTAL_PROFIT_VAULT,
+      totalCostVault: branchConfig.initialTotals.cost,
+      totalSavingsVault: branchConfig.initialTotals.savings,
+      totalProfitVault: branchConfig.initialTotals.profit,
       profitVaultBaselineVersion: PROFIT_VAULT_BASELINE_VERSION,
       totalVaultOverrideVersion: TOTAL_VAULT_OVERRIDE_VERSION,
     },
@@ -1499,12 +1627,12 @@ function createDefaultState() {
 function normalizeState(input) {
   return {
     products:
-      Array.isArray(input?.products) && input.products.length > 0
+      Array.isArray(input?.products)
         ? input.products.map((product) => ({
             ...product,
             costPrice: typeof product?.costPrice === "number" ? product.costPrice : 0,
           }))
-        : defaultProducts.map((product) => ({ ...product })),
+        : getInitialProducts(),
     days: normalizeDays(input?.days || {}),
     meta: {
       totalCostVault:
@@ -1528,6 +1656,10 @@ function normalizeState(input) {
 }
 
 function applyVaultMigrations() {
+  if (!getCurrentBranchConfig().enableLegacyMigrations) {
+    return false;
+  }
+
   let hasChanges = false;
 
   if (state.meta.profitVaultBaselineVersion !== PROFIT_VAULT_BASELINE_VERSION) {
@@ -1630,7 +1762,7 @@ function calculateDailyVaults(transactions) {
   const grossProfit = revenue - expenseTotal;
   const costVault = totalProductCost - costExpenses;
   const distributableAfterCost = Math.max(0, revenue - totalProductCost);
-  const savingsVault = Math.min(DAILY_SAVINGS_VAULT_AMOUNT, distributableAfterCost);
+  const savingsVault = Math.min(getDailySavingsTarget(), distributableAfterCost);
   const adjustedSavingsVault = savingsVault - savingsExpenses;
   const netProfit = distributableAfterCost - savingsVault - profitExpenses;
   const profitVault = netProfit;
@@ -1685,3 +1817,5 @@ function escapeHtml(text) {
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+

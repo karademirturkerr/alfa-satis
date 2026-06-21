@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -30,9 +30,21 @@
 
   <div id="appShell" class="app-shell hidden">
     <div class="topbar">
-      <div class="user-pill">
-        <span id="currentUserName">Kullanici</span>
-        <strong id="currentUserRole">Rol</strong>
+      <div class="topbar-left">
+        <div class="branch-switcher">
+          <button id="branchMenuButton" class="branch-menu-button" type="button" aria-expanded="false" aria-controls="branchMenu">
+            <span class="branch-menu-icon">☰</span>
+            <strong id="currentBranchLabel">ALFA1</strong>
+          </button>
+          <div id="branchMenu" class="branch-menu hidden">
+            <button class="branch-option" type="button" data-branch="ALFA1">ALFA1</button>
+            <button class="branch-option" type="button" data-branch="ALFA2">ALFA2</button>
+          </div>
+        </div>
+        <div class="user-pill">
+          <span id="currentUserName">Kullanici</span>
+          <strong id="currentUserRole">Rol</strong>
+        </div>
       </div>
       <button id="logoutButton" class="ghost-button" type="button">Cikis Yap</button>
     </div>
@@ -399,3 +411,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
