@@ -14,7 +14,7 @@ const TOTAL_VAULT_OVERRIDE = {
   savings: 0,
   profit: 870,
 };
-const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
+const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-26-alfa2-total-vaults-3420-3820-2000";
 const ALFA2_TOTAL_VAULT_OVERRIDE = {
   cost: 3420,
   savings: 3820,
