@@ -9,20 +9,25 @@ const INITIAL_TOTAL_PROFIT_VAULT = 5892;
 const DAILY_SAVINGS_VAULT_AMOUNT = 500;
 const DAILY_SAVINGS_VAULT_AMOUNT_ALFA2 = 1000;
 const PROFIT_VAULT_BASELINE_VERSION = "2026-04-10-total-profit-5892";
+
 const TOTAL_VAULT_OVERRIDE = {
   cost: 492,
   savings: 0,
   profit: 870,
 };
-const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-26-alfa2-total-vaults-3420-3820-2000";
+
+const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
+
 const ALFA2_TOTAL_VAULT_OVERRIDE = {
   cost: 3420,
   savings: 3820,
   profit: 2000,
 };
-const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-21-alfa2-total-vaults-1247-1000-753";
+
+const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-26-alfa2-total-vaults-3420-3820-2000";
 const BRANCH_MERGE_VERSION = "2026-06-26-alfa1-into-alfa2";
 const BRANCH_STORAGE_KEY = "restaurant-active-branch-v1";
+
 const BRANCHES = {
   ALFA1: {
     id: "ALFA1",
