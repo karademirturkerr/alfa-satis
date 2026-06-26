@@ -21,6 +21,7 @@ const ALFA2_TOTAL_VAULT_OVERRIDE = {
   profit: 753,
 };
 const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-21-alfa2-total-vaults-1247-1000-753";
+const BRANCH_MERGE_VERSION = "2026-06-26-alfa1-into-alfa2";
 const BRANCH_STORAGE_KEY = "restaurant-active-branch-v1";
 const BRANCHES = {
   ALFA1: {
@@ -44,11 +45,11 @@ const BRANCHES = {
     reportSettingsAppId: `${appConfig.appId}-alfa2`,
     dailySavingsTarget: DAILY_SAVINGS_VAULT_AMOUNT_ALFA2,
     initialTotals: {
-      cost: 0,
-      savings: 0,
-      profit: 0,
+      cost: 1247,
+      savings: 1000,
+      profit: 753,
     },
-    startsEmptyProducts: true,
+    startsEmptyProducts: false,
     enableLegacyMigrations: false,
   },
 };
@@ -601,13 +602,13 @@ function closeBranchMenu() {
 }
 
 async function switchBranch(nextBranch) {
-  currentBranch = BRANCHES[nextBranch] ? nextBranch : "ALFA1";
+  currentBranch = nextBranch === "ALFA2" ? "ALFA2" : "ALFA2";
   persistCurrentBranch();
   setUiDisabled(true);
 
   try {
     state = await loadState();
-    if (applyVaultMigrations()) {
+    if (await applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
@@ -627,7 +628,7 @@ async function hydrateAuthenticatedApp(session) {
     currentProfile = await loadCurrentProfile(session);
     currentRole = currentProfile?.role || "staff";
     state = await loadState();
-    if (applyVaultMigrations()) {
+    if (await applyVaultMigrations()) {
       await persist();
     }
     reportSettings = await loadReportSettings();
@@ -764,7 +765,7 @@ function renderSummary() {
   const currentDay = getCurrentDay();
   const vaults = calculateDailyVaults(currentDay.transactions);
 
-  totalRevenue.textContent = formatCurrency(vaults.revenue);
+  totalRevenue.textContent = formatCurrency(state.meta.totalCostVault + state.meta.totalSavingsVault + state.meta.totalProfitVault);
   dailyCostVault.textContent = formatCurrency(vaults.costVault);
   dailySavingsVault.textContent = formatCurrency(vaults.savingsVault);
   dailyProfitVault.textContent = formatCurrency(vaults.profitVault);
@@ -784,7 +785,7 @@ function renderSummary() {
     ? "Bu gun kapatildi ve dagitim toplam kasalara eklendi."
     : "Bu gun henuz kapatilmadi.";
   operationStatusText.textContent = currentDay.isClosed
-    ? "Vardiya kapatildi. Maliyet, birikim ve total kasalara islenmis durumda."
+    ? "Vardiya kapatildi. Maliyet, birikim ve kar kasalara islenmis durumda."
     : "Vardiya acik. Gun sonu kontrolunden sonra kapatabilirsin.";
   operationNetPreview.textContent = formatCurrency(vaults.profitVault);
 }
@@ -1077,10 +1078,11 @@ function buildReportLines(title, transactions, includeDateColumn = false) {
     ["Brut Kar", toExcelNumber(vaults.grossProfit)],
     ["Gunluk Maliyet Kasa", toExcelNumber(vaults.costVault)],
     ["Gunluk Birikim Kasa", toExcelNumber(vaults.savingsVault)],
-    ["Gunluk Total Kasa", toExcelNumber(vaults.profitVault)],
+    ["Gunluk Kar Kasa", toExcelNumber(vaults.profitVault)],
     ["Toplam Maliyet Kasa", toExcelNumber(state.meta.totalCostVault)],
     ["Toplam Birikim Kasa", toExcelNumber(state.meta.totalSavingsVault)],
-    ["Toplam Total Kasa", toExcelNumber(state.meta.totalProfitVault)],
+    ["Toplam Kar Kasa", toExcelNumber(state.meta.totalProfitVault)],
+    ["Toplam Kasa", toExcelNumber(state.meta.totalCostVault + state.meta.totalSavingsVault + state.meta.totalProfitVault)],
     [],
     ["Satilan Urunler"],
     ["Urun", "Adet", "Toplam"],
@@ -1136,7 +1138,7 @@ function getPaymentLabel(paymentType) {
   }
 
   if (paymentType === "profit") {
-    return "Total Kasasi";
+    return "Kar Kasasi";
   }
 
   if (paymentType === "bank") {
@@ -1194,10 +1196,11 @@ function buildWhatsAppShareMessage({ reportDate, transactions, reportType }) {
     `Brut Kar: ${formatCurrency(vaults.grossProfit)}`,
     `Gunluk Maliyet Kasa: ${formatCurrency(vaults.costVault)}`,
     `Gunluk Birikim Kasa: ${formatCurrency(vaults.savingsVault)}`,
-    `Gunluk Total Kasa: ${formatCurrency(vaults.profitVault)}`,
+    `Gunluk Kar Kasa: ${formatCurrency(vaults.profitVault)}`,
     `Toplam Maliyet Kasa: ${formatCurrency(state.meta.totalCostVault)}`,
     `Toplam Birikim Kasa: ${formatCurrency(state.meta.totalSavingsVault)}`,
-    `Toplam Total Kasa: ${formatCurrency(state.meta.totalProfitVault)}`,
+    `Toplam Kar Kasa: ${formatCurrency(state.meta.totalProfitVault)}`,
+    `Toplam Kasa: ${formatCurrency(state.meta.totalCostVault + state.meta.totalSavingsVault + state.meta.totalProfitVault)}`,
   ];
 
   if (reportType === "daily_with_top_products") {
@@ -1481,11 +1484,11 @@ async function persist() {
   persistLocalState();
 }
 
-function loadLocalState() {
-  const storedValue = localStorage.getItem(getCurrentStorageKey());
+function loadLocalStateByKey(storageKey, fallbackToDefault = false) {
+  const storedValue = localStorage.getItem(storageKey);
 
   if (!storedValue) {
-    return createDefaultState();
+    return fallbackToDefault ? createDefaultState() : null;
   }
 
   try {
@@ -1493,17 +1496,21 @@ function loadLocalState() {
     return normalizeState(parsed);
   } catch (error) {
     console.error("Veri okunamadi, varsayilan veri kullaniliyor.", error);
-    return createDefaultState();
+    return fallbackToDefault ? createDefaultState() : null;
   }
+}
+
+function loadLocalState() {
+  return loadLocalStateByKey(getCurrentStorageKey(), true);
 }
 
 function persistLocalState() {
   localStorage.setItem(getCurrentStorageKey(), JSON.stringify(state));
 }
 
-async function loadRemoteState() {
+async function loadRemoteStateByAppId(appId) {
   const response = await fetch(
-    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(getCurrentAppId())}&select=data`,
+    `${appConfig.supabaseUrl}/rest/v1/${appConfig.supabaseTable}?app_id=eq.${encodeURIComponent(appId)}&select=data`,
     {
       method: "GET",
       headers: createSupabaseHeaders(),
@@ -1516,15 +1523,33 @@ async function loadRemoteState() {
 
   const rows = await response.json();
   const remoteRow = rows[0];
+  return remoteRow ? normalizeState(remoteRow.data) : null;
+}
 
-  if (!remoteRow) {
+async function loadRemoteState() {
+  const remoteState = await loadRemoteStateByAppId(getCurrentAppId());
+
+  if (!remoteState) {
     const initialState = createDefaultState();
     state = initialState;
     await createRemoteState(initialState);
     return initialState;
   }
 
-  return normalizeState(remoteRow.data);
+  return remoteState;
+}
+
+async function loadBranchState(branchId) {
+  const branch = BRANCHES[branchId];
+  if (!branch) {
+    return null;
+  }
+
+  if (isRemoteStorageEnabled()) {
+    return loadRemoteStateByAppId(branch.appId);
+  }
+
+  return loadLocalStateByKey(branch.storageKey, false);
 }
 
 async function createRemoteState(initialState) {
@@ -1594,7 +1619,7 @@ function isRemoteStorageEnabled() {
 }
 
 function getCurrentBranchConfig() {
-  return BRANCHES[currentBranch] || BRANCHES.ALFA1;
+  return BRANCHES[currentBranch] || BRANCHES.ALFA2;
 }
 
 function getCurrentAppId() {
@@ -1615,7 +1640,7 @@ function getDailySavingsTarget() {
 
 function restoreCurrentBranch() {
   const storedBranch = localStorage.getItem(BRANCH_STORAGE_KEY);
-  return BRANCHES[storedBranch] ? storedBranch : "ALFA1";
+  return storedBranch === "ALFA2" ? "ALFA2" : "ALFA2";
 }
 
 function persistCurrentBranch() {
@@ -1640,6 +1665,7 @@ function createDefaultState() {
       totalProfitVault: branchConfig.initialTotals.profit,
       profitVaultBaselineVersion: PROFIT_VAULT_BASELINE_VERSION,
       totalVaultOverrideVersion: branchConfig.id === "ALFA2" ? ALFA2_TOTAL_VAULT_OVERRIDE_VERSION : TOTAL_VAULT_OVERRIDE_VERSION,
+      branchMergeVersion: null,
     },
   };
 }
@@ -1671,6 +1697,7 @@ function normalizeState(input) {
             : INITIAL_TOTAL_PROFIT_VAULT,
       profitVaultBaselineVersion: input?.meta?.profitVaultBaselineVersion || null,
       totalVaultOverrideVersion: input?.meta?.totalVaultOverrideVersion || null,
+      branchMergeVersion: input?.meta?.branchMergeVersion || null,
     },
   };
 }
@@ -1798,7 +1825,7 @@ function calculateDailyVaults(transactions) {
   const grossProfit = revenue - expenseTotal;
   const costVault = totalProductCost - costExpenses;
   const distributableAfterCost = Math.max(0, revenue - totalProductCost);
-  const savingsVault = Math.min(getDailySavingsTarget(), distributableAfterCost);
+  const savingsVault = Math.min(DAILY_SAVINGS_VAULT_AMOUNT_ALFA2, distributableAfterCost);
   const adjustedSavingsVault = savingsVault - savingsExpenses;
   const netProfit = distributableAfterCost - savingsVault - profitExpenses;
   const profitVault = netProfit;
