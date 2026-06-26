@@ -16,9 +16,9 @@ const TOTAL_VAULT_OVERRIDE = {
 };
 const TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-03-total-vaults-492-0-870";
 const ALFA2_TOTAL_VAULT_OVERRIDE = {
-  cost: 1247,
-  savings: 1000,
-  profit: 753,
+  cost: 3420,
+  savings: 3820,
+  profit: 2000,
 };
 const ALFA2_TOTAL_VAULT_OVERRIDE_VERSION = "2026-06-21-alfa2-total-vaults-1247-1000-753";
 const BRANCH_MERGE_VERSION = "2026-06-26-alfa1-into-alfa2";
