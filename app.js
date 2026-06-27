@@ -100,6 +100,7 @@ const expenseMethodTypeInput = document.querySelector("#expenseMethodType");
 const transactionTableBody = document.querySelector("#transactionTableBody");
 const salesBreakdown = document.querySelector("#salesBreakdown");
 const totalRevenue = document.querySelector("#totalRevenue");
+const dailyRevenue = document.querySelector("#dailyRevenue");
 const dailyCostVault = document.querySelector("#dailyCostVault");
 const dailySavingsVault = document.querySelector("#dailySavingsVault");
 const dailyProfitVault = document.querySelector("#dailyProfitVault");
@@ -771,6 +772,7 @@ function renderSummary() {
   const vaults = calculateDailyVaults(currentDay.transactions);
 
   totalRevenue.textContent = formatCurrency(state.meta.totalCostVault + state.meta.totalSavingsVault + state.meta.totalProfitVault);
+  dailyRevenue.textContent = formatCurrency(vaults.revenue);
   dailyCostVault.textContent = formatCurrency(vaults.costVault);
   dailySavingsVault.textContent = formatCurrency(vaults.savingsVault);
   dailyProfitVault.textContent = formatCurrency(vaults.profitVault);
@@ -1885,5 +1887,4 @@ function escapeHtml(text) {
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#039;");
 }
-
 
